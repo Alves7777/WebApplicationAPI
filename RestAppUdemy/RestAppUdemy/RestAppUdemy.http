@@ -1,0 +1,6 @@
+@RestAppUdemy_HostAddress = http://localhost:5116
+
+GET {{RestAppUdemy_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
