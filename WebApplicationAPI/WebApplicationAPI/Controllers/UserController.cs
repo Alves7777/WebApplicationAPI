@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WebApplicationAPI.DTO;
+using WebApplicationAPI.Services.Interfaces;
 
 namespace WebApplicationAPI.Controllers
 {
@@ -7,64 +8,106 @@ namespace WebApplicationAPI.Controllers
     [Route("api/[controller]")]
     public class UserController : ControllerBase
     {
-        [HttpGet("{id}")]
-        public IActionResult GetUserById(int id)
+        private readonly IUserService _userService;
+
+        public UserController(IUserService userService)
         {
-            if (id < 0)
-            {
-                return BadRequest("ID inválido");
-            }
-
-            var user = new { Id = id, Name = "Lucas Alves", Email = "lucas@gmail.com"};
-
-            return Ok(user);
+            _userService = userService;
         }
 
         [HttpGet]
-        public IActionResult GetAllUsers()
+        [ProducesResponseType(typeof(IEnumerable<UserResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetAll()
         {
-            var users = new[]
-            {
-                new { Id = 1, Name = "Lucas", Email = "lucas@escanor.com"},
-                new { Id = 2, Name = "Alves", Email = "alves@escanor.com"}
-            };
-
+            var users = await _userService.GetAllUsersAsync();
             return Ok(users);
         }
 
-        [HttpPost]
-        public IActionResult CreateUser([FromBody] UserDTO user)
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetById(int id)
         {
-            if (string.IsNullOrEmpty(user.Name))
+            try
             {
-                return BadRequest("Faltou o nome aqui");
+                var user = await _userService.GetUserByIdAsync(id);
+                
+                if (user == null)
+                {
+                    return NotFound(new { message = $"Usuário com ID {id} não encontrado" });
+                }
+
+                return Ok(user);
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro interno no servidor", error = ex.Message });
+            }
+        }
 
-            var createdUser = new { Id = 3, Name = user.Name, Email = user.Email };
-
-            return Created($"/User/{createdUser.Id}", createdUser);
+        [HttpPost]
+        [ProducesResponseType(typeof(UserResponse), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Create([FromBody] CreateUserRequest request)
+        {
+            try
+            {
+                var user = await _userService.CreateUserAsync(request);
+                return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro interno no servidor", error = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateUser(int id, [FromBody] UserDTO updatedUser)
+        [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateUserRequest request)
         {
-            if (id <= 0)
+            try
             {
-                return BadRequest("ID inválido");
+                var user = await _userService.UpdateUserAsync(id, request);
+                return Ok(user);
             }
-
-            return Ok(new { Id = id, Name = updatedUser.Name, Email = updatedUser.Email });
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro interno no servidor", error = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
-        public IActionResult DeleteUser(int id)
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Delete(int id)
         {
-            if (id <= 0)
+            try
             {
-                return BadRequest("ID inválido");
+                await _userService.DeleteUserAsync(id);
+                return NoContent();
             }
-
-            return NoContent();
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro interno no servidor", error = ex.Message });
+            }
         }
     }
 }
