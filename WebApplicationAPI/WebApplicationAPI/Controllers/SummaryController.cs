@@ -16,15 +16,9 @@ namespace WebApplicationAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] int month, [FromQuery] int year, [FromQuery] decimal salary, [FromQuery] decimal reserve)
+        public async Task<IActionResult> Get()
         {
-            var query = new GetFinancialSummaryQuery
-            {
-                Month = month,
-                Year = year,
-                Salary = salary,
-                Reserve = reserve
-            };
+            var query = new GetFinancialSummaryQuery();
             var result = await _mediator.Send(query);
             return Ok(result);
         }
