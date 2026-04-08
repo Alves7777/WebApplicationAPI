@@ -1,0 +1,16 @@
+-- =============================================
+-- MIGRATION: Criar Tabela Expenses
+-- =============================================
+
+CREATE TABLE Expenses (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Month INT NOT NULL,
+    Year INT NOT NULL,
+    Description NVARCHAR(500) NOT NULL,
+    Amount DECIMAL(18,2) NOT NULL,
+    Category NVARCHAR(100) NOT NULL,
+    Status NVARCHAR(50) NOT NULL,
+    PaymentMethod NVARCHAR(100) NOT NULL,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
+);
+GO

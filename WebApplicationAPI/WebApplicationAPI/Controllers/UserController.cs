@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using WebApplicationAPI.DTO;
+﻿using WebApplicationAPI.DTO;
 using WebApplicationAPI.Services.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 
 namespace WebApplicationAPI.Controllers
 {
@@ -103,6 +103,43 @@ namespace WebApplicationAPI.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro interno no servidor", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Busca usuários com paginação e filtro
+        /// </summary>
+        /// <param name="searchTerm">Termo para buscar no nome ou email (opcional)</param>
+        /// <param name="pageNumber">Número da página (padrão: 1)</param>
+        /// <param name="pageSize">Quantidade de itens por página (padrão: 10)</param>
+        [HttpGet("search")]
+        [ProducesResponseType(typeof(PagedUserResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> SearchUsers(
+            [FromQuery] string? searchTerm,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                if (pageNumber < 1 || pageSize < 1)
+                {
+                    return BadRequest(new { message = "PageNumber e PageSize devem ser maiores que zero" });
+                }
+
+                var request = new SearchUsersRequest
+                {
+                    SearchTerm = searchTerm,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize
+                };
+
+                var result = await _userService.SearchUsersAsync(request);
+                return Ok(result);
             }
             catch (Exception ex)
             {

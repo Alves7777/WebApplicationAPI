@@ -1,6 +1,158 @@
 @WebApplicationAPI_HostAddress = http://localhost:5296
 
+### Weather Forecast (Exemplo)
 GET {{WebApplicationAPI_HostAddress}}/weatherforecast/
 Accept: application/json
+
+###
+
+### ========================================
+### EXPENSES - Gerenciamento de Despesas
+### ========================================
+
+### 1. Criar nova despesa
+POST {{WebApplicationAPI_HostAddress}}/api/expense
+Content-Type: application/json
+
+{
+  "month": 1,
+  "year": 2025,
+  "description": "Compra no supermercado",
+  "amount": 250.50,
+  "category": "Alimentação",
+  "status": "Pago",
+  "paymentMethod": "Cartão de Crédito"
+}
+
+###
+
+### 2. Buscar todas as despesas (GET - SEM BODY)
+GET {{WebApplicationAPI_HostAddress}}/api/expense
+Accept: application/json
+
+###
+
+### 3. Buscar despesas com filtros (GET - SEM BODY)
+GET {{WebApplicationAPI_HostAddress}}/api/expense?month=1&year=2025&category=Alimentação
+Accept: application/json
+
+###
+
+### 3.1. Buscar apenas por mês e ano
+GET {{WebApplicationAPI_HostAddress}}/api/expense?month=1&year=2025
+Accept: application/json
+
+###
+
+### 3.2. Buscar apenas por categoria
+GET {{WebApplicationAPI_HostAddress}}/api/expense?category=Transporte
+Accept: application/json
+
+###
+
+### 3.3. Buscar por status
+GET {{WebApplicationAPI_HostAddress}}/api/expense?status=Pago
+Accept: application/json
+
+###
+
+### 3.4. RELATÓRIO COMPLETO - Filtrado por parâmetros
+GET {{WebApplicationAPI_HostAddress}}/api/expense/report?month=1&year=2025
+Accept: application/json
+
+###
+
+### 3.5. RELATÓRIO por categoria
+GET {{WebApplicationAPI_HostAddress}}/api/expense/report?category=Alimentação
+Accept: application/json
+
+###
+
+### 3.6. RELATÓRIO geral (sem filtros)
+GET {{WebApplicationAPI_HostAddress}}/api/expense/report
+Accept: application/json
+
+###
+
+### 4. Atualizar despesa (substitua {id} pelo ID real)
+PUT {{WebApplicationAPI_HostAddress}}/api/expense/1
+Content-Type: application/json
+
+{
+  "month": 1,
+  "year": 2025,
+  "description": "Compra no supermercado - Atualizado",
+  "amount": 300.00,
+  "category": "Alimentação",
+  "status": "Pago",
+  "paymentMethod": "Dinheiro"
+}
+
+###
+
+### 5. Deletar despesa (substitua {id} pelo ID real)
+DELETE {{WebApplicationAPI_HostAddress}}/api/expense/1
+
+###
+
+### ========================================
+### SUMMARY - Resumo Financeiro
+### ========================================
+
+### 6. Buscar resumo financeiro
+GET {{WebApplicationAPI_HostAddress}}/api/summary?month=1&year=2025&monthlyIncome=5000
+Accept: application/json
+
+###
+
+### ========================================
+### EXEMPLOS ADICIONAIS
+### ========================================
+
+### 7. Criar despesa - Transporte
+POST {{WebApplicationAPI_HostAddress}}/api/expense
+Content-Type: application/json
+
+{
+  "month": 1,
+  "year": 2025,
+  "description": "Combustível",
+  "amount": 180.00,
+  "category": "Transporte",
+  "status": "Pago",
+  "paymentMethod": "PIX"
+}
+
+###
+
+### 8. Criar despesa - Moradia
+POST {{WebApplicationAPI_HostAddress}}/api/expense
+Content-Type: application/json
+
+{
+  "month": 1,
+  "year": 2025,
+  "description": "Aluguel",
+  "amount": 1500.00,
+  "category": "Moradia",
+  "status": "Pendente",
+  "paymentMethod": "Transferência Bancária"
+}
+
+###
+
+### 9. Criar despesa - Lazer
+POST {{WebApplicationAPI_HostAddress}}/api/expense
+Content-Type: application/json
+
+{
+  "month": 1,
+  "year": 2025,
+  "description": "Cinema",
+  "amount": 45.00,
+  "category": "Lazer",
+  "status": "Pago",
+  "paymentMethod": "Cartão de Débito"
+}
 
 ###

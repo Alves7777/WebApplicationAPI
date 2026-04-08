@@ -10,5 +10,6 @@ namespace WebApplicationAPI.Repositories.Interfaces
         Task<int> CreateAsync(User user);
         Task<bool> UpdateAsync(User user);
         Task<bool> DeleteAsync(int id);
+        Task<(IEnumerable<User> Users, int TotalCount)> SearchUsersAsync(string? searchTerm, int pageNumber, int pageSize);
     }
 }

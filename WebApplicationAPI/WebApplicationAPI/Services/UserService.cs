@@ -29,7 +29,7 @@ namespace WebApplicationAPI.Services
         {
             var user = await _userRepository.GetByIdAsync(id);
 
-            if (user == null)
+            if (user is null)
                 return null;
 
             return new UserResponse
@@ -43,7 +43,7 @@ namespace WebApplicationAPI.Services
         public async Task<UserResponse> CreateUserAsync(CreateUserRequest request)
         {
             var existingUser = await _userRepository.GetByEmailAsync(request.Email);
-            if (existingUser != null)
+            if (existingUser is not null)
             {
                 throw new InvalidOperationException("Email já cadastrado");
             }
@@ -68,13 +68,13 @@ namespace WebApplicationAPI.Services
         public async Task<UserResponse> UpdateUserAsync(int id, UpdateUserRequest request)
         {
             var existingUser = await _userRepository.GetByIdAsync(id);
-            if (existingUser == null)
+            if (existingUser is null)
             {
                 throw new KeyNotFoundException($"Usuário com ID {id} não encontrado");
             }
 
             var emailInUse = await _userRepository.GetByEmailAsync(request.Email);
-            if (emailInUse != null && emailInUse.Id != id)
+            if (emailInUse is not null && emailInUse.Id != id)
             {
                 throw new InvalidOperationException("Email já cadastrado em outro usuário");
             }
@@ -99,12 +99,34 @@ namespace WebApplicationAPI.Services
         public async Task<bool> DeleteUserAsync(int id)
         {
             var existingUser = await _userRepository.GetByIdAsync(id);
-            if (existingUser == null)
+            if (existingUser is null)
             {
                 throw new KeyNotFoundException($"Usuário com ID {id} não encontrado");
             }
 
             return await _userRepository.DeleteAsync(id);
+        }
+
+        public async Task<PagedUserResponse> SearchUsersAsync(SearchUsersRequest request)
+        {
+            var (users, totalRecords) = await _userRepository.SearchUsersAsync(
+                request.SearchTerm,
+                request.PageNumber,
+                request.PageSize
+            );
+
+            return new PagedUserResponse
+            {
+                Items = users.Select(u => new UserResponse
+                {
+                    Id = u.Id,
+                    Name = u.Name,
+                    Email = u.Email
+                }),
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize,
+                TotalCount = totalRecords
+            };
         }
     }
 }

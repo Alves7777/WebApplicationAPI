@@ -1,4 +1,5 @@
 using WebApplicationAPI.DTO;
+using WebApplicationAPI.Models;
 
 namespace WebApplicationAPI.Services.Interfaces
 {
@@ -9,5 +10,6 @@ namespace WebApplicationAPI.Services.Interfaces
         Task<UserResponse> CreateUserAsync(CreateUserRequest request);
         Task<UserResponse> UpdateUserAsync(int id, UpdateUserRequest request);
         Task<bool> DeleteUserAsync(int id);
+        Task<PagedUserResponse> SearchUsersAsync(SearchUsersRequest request);
     }
 }

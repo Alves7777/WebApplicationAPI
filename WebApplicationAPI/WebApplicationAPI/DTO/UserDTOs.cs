@@ -32,4 +32,20 @@ namespace WebApplicationAPI.DTO
         public string Name { get; set; }
         public string Email { get; set; }
     }
+
+    public class SearchUsersRequest
+    {
+        public string? SearchTerm { get; set; }
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+    }
+
+    public class PagedUserResponse
+    {
+        public IEnumerable<UserResponse> Items { get; set; }
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalCount { get; set; }
+        public int TotalPages => (int)Math.Ceiling(TotalCount / (double)PageSize);
+    }
 }
