@@ -193,6 +193,22 @@ namespace WebApplicationAPI.Services
                             continue;
                         }
 
+                        // ? VERIFICAR DUPLICIDADE
+                        var exists = await _repository.ExpenseExistsAsync(
+                            creditCardId,
+                            purchaseDate,
+                            record.Title,
+                            amount
+                        );
+
+                        if (exists)
+                        {
+                            // Já existe, pular e contar como duplicado
+                            result.DuplicateCount++;
+                            errors.Add($"Duplicado (ignorado): {record.Title} - {amount:C}");
+                            continue;
+                        }
+
                         var category = CategorizeExpense(record.Title);
 
                         if (!categoriesCount.ContainsKey(category))

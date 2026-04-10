@@ -122,6 +122,7 @@ namespace WebApplicationAPI.DTO
     {
         public int TotalRecords { get; set; }
         public int ImportedRecords { get; set; }
+        public int DuplicateCount { get; set; }
         public int ErrorCount { get; set; }
         public List<string> Errors { get; set; } = new List<string>();
         public Dictionary<string, int> CategoriesCount { get; set; } = new Dictionary<string, int>();

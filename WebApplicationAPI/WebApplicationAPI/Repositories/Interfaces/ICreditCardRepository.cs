@@ -23,5 +23,8 @@ namespace WebApplicationAPI.Repositories.Interfaces
         // Analytics
         Task<List<CreditCardExpense>> GetStatementAsync(int creditCardId, int month, int year);
         Task<Dictionary<string, decimal>> GetExpensesByCategoryAsync(int creditCardId, int month, int year);
+
+        // Verificar duplicidade
+        Task<bool> ExpenseExistsAsync(int creditCardId, DateTime purchaseDate, string description, decimal amount);
     }
 }

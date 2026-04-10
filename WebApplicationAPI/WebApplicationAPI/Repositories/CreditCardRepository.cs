@@ -233,5 +233,29 @@ namespace WebApplicationAPI.Repositories
 
             return result.ToDictionary(x => x.Category ?? "Sem Categoria", x => x.TotalAmount);
         }
+
+        public async Task<bool> ExpenseExistsAsync(int creditCardId, DateTime purchaseDate, string description, decimal amount)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            var sql = @"
+                SELECT COUNT(1)
+                FROM CreditCardExpenses
+                WHERE CreditCardId = @CreditCardId
+                  AND PurchaseDate = @PurchaseDate
+                  AND Description = @Description
+                  AND Amount = @Amount
+            ";
+
+            var count = await connection.ExecuteScalarAsync<int>(sql, new
+            {
+                CreditCardId = creditCardId,
+                PurchaseDate = purchaseDate,
+                Description = description,
+                Amount = amount
+            });
+
+            return count > 0;
+        }
     }
 }
