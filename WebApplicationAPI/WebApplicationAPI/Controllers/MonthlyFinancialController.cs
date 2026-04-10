@@ -19,49 +19,48 @@ namespace WebApplicationAPI.Controllers
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(MonthlyFinancialResponse), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<MonthlyFinancialResponse>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Create([FromBody] CreateMonthlyFinancialRequest request)
         {
             try
             {
                 var result = await _service.CreateAsync(request);
-                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+                return StatusCode(201, ApiResponse<MonthlyFinancialResponse>.Success(result, "Controle mensal criado com sucesso"));
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erro interno no servidor", error = ex.Message });
+                return StatusCode(500, ApiResponse<object>.Error($"Erro interno: {ex.Message}"));
             }
         }
 
         [HttpPut("{id}")]
-        [ProducesResponseType(typeof(MonthlyFinancialResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<MonthlyFinancialResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateMonthlyFinancialRequest request)
         {
             try
             {
                 var result = await _service.UpdateAsync(id, request);
-                return Ok(result);
+                return Ok(ApiResponse<MonthlyFinancialResponse>.Success(result, "Controle mensal atualizado"));
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erro interno no servidor", error = ex.Message });
+                return StatusCode(500, ApiResponse<object>.Error($"Erro interno: {ex.Message}"));
             }
         }
 
         [HttpDelete("{id}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete(int id)
         {
             try
@@ -69,18 +68,18 @@ namespace WebApplicationAPI.Controllers
                 var result = await _service.DeleteAsync(id);
                 if (!result)
                 {
-                    return NotFound(new { message = "Registro não encontrado" });
+                    return NotFound(ApiResponse<object>.Fail("Registro não encontrado"));
                 }
-                return NoContent();
+                return Ok(ApiResponse.Success("Registro deletado com sucesso"));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erro interno no servidor", error = ex.Message });
+                return StatusCode(500, ApiResponse<object>.Error($"Erro interno: {ex.Message}"));
             }
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(List<MonthlyFinancialResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<List<MonthlyFinancialResponse>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAll([FromQuery] int? year, [FromQuery] int? month)
         {
             try
@@ -90,29 +89,29 @@ namespace WebApplicationAPI.Controllers
                     var specific = await _service.GetByYearAndMonthAsync(year.Value, month.Value);
                     if (specific == null)
                     {
-                        return NotFound(new { message = $"Registro não encontrado para {month}/{year}" });
+                        return NotFound(ApiResponse<object>.Fail($"Registro não encontrado para {month}/{year}"));
                     }
-                    return Ok(specific);
+                    return Ok(ApiResponse<MonthlyFinancialResponse>.Success(specific));
                 }
 
                 if (year.HasValue)
                 {
                     var result = await _service.GetByYearAsync(year.Value);
-                    return Ok(result);
+                    return Ok(ApiResponse<List<MonthlyFinancialResponse>>.Success(result));
                 }
 
                 var all = await _service.GetAllAsync();
-                return Ok(all);
+                return Ok(ApiResponse<List<MonthlyFinancialResponse>>.Success(all));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erro interno no servidor", error = ex.Message });
+                return StatusCode(500, ApiResponse<object>.Error($"Erro interno: {ex.Message}"));
             }
         }
 
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(MonthlyFinancialResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<MonthlyFinancialResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(int id)
         {
             try
@@ -120,13 +119,13 @@ namespace WebApplicationAPI.Controllers
                 var result = await _service.GetByIdAsync(id);
                 if (result == null)
                 {
-                    return NotFound(new { message = "Registro não encontrado" });
+                    return NotFound(ApiResponse<object>.Fail("Registro não encontrado"));
                 }
-                return Ok(result);
+                return Ok(ApiResponse<MonthlyFinancialResponse>.Success(result));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erro interno no servidor", error = ex.Message });
+                return StatusCode(500, ApiResponse<object>.Error($"Erro interno: {ex.Message}"));
             }
         }
     }

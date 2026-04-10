@@ -22,6 +22,9 @@ namespace WebApplicationAPI.DependencyInjection
             services.AddScoped<IMonthlyFinancialRepository, MonthlyFinancialRepository>();
             services.AddScoped<IMonthlyFinancialService, MonthlyFinancialService>();
 
+            services.AddScoped<ICreditCardRepository, CreditCardRepository>();
+            services.AddScoped<ICreditCardService, CreditCardService>();
+
             services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
             services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
             return services;

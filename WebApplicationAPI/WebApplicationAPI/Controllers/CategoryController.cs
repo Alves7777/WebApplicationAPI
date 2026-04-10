@@ -17,23 +17,23 @@ namespace WebApplicationAPI.Controllers
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<CategoryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<IEnumerable<CategoryResponse>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAll()
         {
             try
             {
                 var categories = await _categoryService.GetAllCategoryAsync();
-                return Ok(categories);
+                return Ok(ApiResponse<IEnumerable<CategoryResponse>>.Success(categories));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erro interno no servidor", error = ex.Message });
+                return StatusCode(500, ApiResponse<object>.Error($"Erro interno: {ex.Message}"));
             }
         }
 
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<CategoryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(int id)
         {
             try
@@ -41,34 +41,34 @@ namespace WebApplicationAPI.Controllers
                 var category = await _categoryService.GetCategoryByIdAsync(id);
 
                 if (category == null) {
-                    return NotFound(new { message = $"Usuário com ID {id} não encontrado" });
+                    return NotFound(ApiResponse<object>.Fail($"Categoria com ID {id} não encontrada"));
                 }
 
-                return Ok(category);
+                return Ok(ApiResponse<CategoryResponse>.Success(category));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erro interno no servidor", error = ex.Message });
+                return StatusCode(500, ApiResponse<object>.Error($"Erro interno: {ex.Message}"));
             }
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(UserResponse), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<CategoryResponse>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Create([FromBody] CreateCategoryRequest request)
         {
             try
             {
                 var category = await _categoryService.CreateCategoryAsync(request);
-                return CreatedAtAction(nameof(GetById), new { id = category.Id }, category);
+                return StatusCode(201, ApiResponse<CategoryResponse>.Success(category, "Categoria criada com sucesso"));
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erro interno no servidor", error = ex.Message });
+                return StatusCode(500, ApiResponse<object>.Error($"Erro interno: {ex.Message}"));
             }
         }
     }

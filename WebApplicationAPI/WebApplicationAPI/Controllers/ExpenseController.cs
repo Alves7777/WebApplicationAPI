@@ -21,7 +21,7 @@ namespace WebApplicationAPI.Controllers
         public async Task<IActionResult> Create([FromBody] CreateExpenseRequest request)
         {
             var result = await _mediator.Send(new CreateExpenseCommand(request));
-            return Ok(result);
+            return StatusCode(201, ApiResponse<ExpenseResponse>.Success(result, "Despesa criada com sucesso"));
         }
 
         [HttpPut("{id}")]
@@ -30,10 +30,10 @@ namespace WebApplicationAPI.Controllers
             var result = await _mediator.Send(new UpdateExpenseCommand(id, request));
             if (result == null)
             {
-                return NotFound();
+                return NotFound(ApiResponse<object>.Fail("Despesa não encontrada"));
             }
 
-            return Ok(result);
+            return Ok(ApiResponse<ExpenseResponse>.Success(result, "Despesa atualizada com sucesso"));
         }
 
         [HttpPatch("{id}")]
@@ -42,10 +42,10 @@ namespace WebApplicationAPI.Controllers
             var result = await _mediator.Send(new PatchExpenseCommand(id, request));
             if (result == null)
             {
-                return NotFound();
+                return NotFound(ApiResponse<object>.Fail("Despesa não encontrada"));
             }
 
-            return Ok(result);
+            return Ok(ApiResponse<ExpenseResponse>.Success(result, "Despesa atualizada parcialmente"));
         }
 
         [HttpDelete("{id}")]
@@ -54,16 +54,16 @@ namespace WebApplicationAPI.Controllers
             var result = await _mediator.Send(new DeleteExpenseCommand(id));
             if (!result)
             {
-                return NotFound();
+                return NotFound(ApiResponse<object>.Fail("Despesa não encontrada"));
             }
-            return NoContent();
+            return Ok(ApiResponse.Success("Despesa deletada com sucesso"));
         }
 
         [HttpGet]
         public async Task<IActionResult> Get([FromQuery] GetExpensesQuery query)
         {
             var result = await _mediator.Send(query);
-            return Ok(result);
+            return Ok(ApiResponse<List<ExpenseResponse>>.Success(result));
         }
 
         [HttpGet("report")]
