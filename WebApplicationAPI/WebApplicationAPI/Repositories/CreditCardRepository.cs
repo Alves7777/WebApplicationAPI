@@ -238,24 +238,38 @@ namespace WebApplicationAPI.Repositories
         {
             using var connection = new SqlConnection(_connectionString);
 
-            var sql = @"
-                SELECT COUNT(1)
-                FROM CreditCardExpenses
-                WHERE CreditCardId = @CreditCardId
-                  AND PurchaseDate = @PurchaseDate
-                  AND Description = @Description
-                  AND Amount = @Amount
-            ";
+            var parameters = new DynamicParameters();
+            parameters.Add("@CreditCardId", creditCardId);
+            parameters.Add("@PurchaseDate", purchaseDate);
+            parameters.Add("@Description", description);
+            parameters.Add("@Amount", amount);
+            parameters.Add("@Exists", dbType: DbType.Boolean, direction: ParameterDirection.Output);
 
-            var count = await connection.ExecuteScalarAsync<int>(sql, new
-            {
-                CreditCardId = creditCardId,
-                PurchaseDate = purchaseDate,
-                Description = description,
-                Amount = amount
-            });
+            await connection.ExecuteAsync(
+                "sp_CheckCreditCardExpenseExists",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
 
-            return count > 0;
+            return parameters.Get<bool>("@Exists");
+        }
+
+        public async Task<List<CreditCardExpense>> GetExpensesByPeriodAsync(int creditCardId, DateTime startDate, DateTime endDate)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            var result = await connection.QueryAsync<CreditCardExpense>(
+                "sp_GetCreditCardExpensesByPeriod",
+                new
+                {
+                    CreditCardId = creditCardId,
+                    StartDate = startDate,
+                    EndDate = endDate
+                },
+                commandType: CommandType.StoredProcedure
+            );
+
+            return result.ToList();
         }
     }
 }

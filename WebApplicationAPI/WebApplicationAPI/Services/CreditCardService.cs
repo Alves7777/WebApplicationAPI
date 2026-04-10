@@ -193,7 +193,6 @@ namespace WebApplicationAPI.Services
                             continue;
                         }
 
-                        // ? VERIFICAR DUPLICIDADE
                         var exists = await _repository.ExpenseExistsAsync(
                             creditCardId,
                             purchaseDate,
@@ -203,7 +202,6 @@ namespace WebApplicationAPI.Services
 
                         if (exists)
                         {
-                            // Já existe, pular e contar como duplicado
                             result.DuplicateCount++;
                             errors.Add($"Duplicado (ignorado): {record.Title} - {amount:C}");
                             continue;
@@ -293,6 +291,40 @@ namespace WebApplicationAPI.Services
                 .ToList();
         }
 
+        public async Task<CreditCardStatementResponse> GetStatementByPeriodAsync(int creditCardId, DateTime startDate, DateTime endDate)
+        {
+            var daysDifference = (endDate - startDate).TotalDays;
+            if (daysDifference > 30)
+            {
+                throw new InvalidOperationException("O período não pode exceder 30 dias");
+            }
+
+            if (daysDifference < 0)
+            {
+                throw new InvalidOperationException("A data final não pode ser anterior à data inicial");
+            }
+
+            var card = await _repository.GetByIdAsync(creditCardId);
+            if (card == null)
+            {
+                throw new InvalidOperationException("Cartão não encontrado");
+            }
+
+            var expenses = await _repository.GetExpensesByPeriodAsync(creditCardId, startDate, endDate);
+
+            return new CreditCardStatementResponse
+            {
+                CardName = card.Name,
+                Brand = card.Brand,
+                Month = startDate.Month,
+                Year = startDate.Year,
+                TotalAmount = expenses.Sum(e => e.Amount),
+                TotalTransactions = expenses.Count,
+                CardLimit = card.CardLimit,
+                Expenses = expenses.Select(MapToExpenseResponse).ToList()
+            };
+        }
+
         private CreditCardResponse MapToResponse(CreditCard creditCard)
         {
             return new CreditCardResponse
@@ -380,8 +412,6 @@ namespace WebApplicationAPI.Services
             return "Outros";
         }
     }
-
-    // Classe para mapear CSV (precisa ser pública para CsvHelper)
     public class CsvExpenseRecord
     {
         [Name("date")]

@@ -121,13 +121,11 @@ namespace WebApplicationAPI.Repositories
         {
             using var connection = new SqlConnection(_connectionString);
 
-            var sql = @"
-                SELECT ISNULL(SUM(Amount), 0) AS Total
-                FROM Expenses
-                WHERE Year = @Year AND Month = @Month
-            ";
-
-            var result = await connection.QueryFirstOrDefaultAsync<decimal>(sql, new { Year = year, Month = month });
+            var result = await connection.QueryFirstOrDefaultAsync<decimal>(
+                "sp_GetExpensesTotalByYearAndMonth",
+                new { Year = year, Month = month },
+                commandType: CommandType.StoredProcedure
+            );
 
             return result;
         }

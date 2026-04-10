@@ -26,5 +26,8 @@ namespace WebApplicationAPI.Repositories.Interfaces
 
         // Verificar duplicidade
         Task<bool> ExpenseExistsAsync(int creditCardId, DateTime purchaseDate, string description, decimal amount);
+
+        // Extrato por período
+        Task<List<CreditCardExpense>> GetExpensesByPeriodAsync(int creditCardId, DateTime startDate, DateTime endDate);
     }
 }

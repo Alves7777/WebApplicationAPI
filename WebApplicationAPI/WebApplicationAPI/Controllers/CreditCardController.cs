@@ -19,8 +19,6 @@ namespace WebApplicationAPI.Controllers
             _service = service;
         }
 
-        // ===== CREDIT CARD CRUD =====
-
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<CreditCardResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -115,8 +113,6 @@ namespace WebApplicationAPI.Controllers
                 return StatusCode(500, ApiResponse<object>.Error($"Erro interno: {ex.Message}"));
             }
         }
-
-        // ===== CREDIT CARD EXPENSE CRUD =====
 
         [HttpPost("{id}/expenses")]
         [ProducesResponseType(typeof(ApiResponse<CreditCardExpenseResponse>), StatusCodes.Status201Created)]
@@ -213,8 +209,6 @@ namespace WebApplicationAPI.Controllers
             }
         }
 
-        // ===== CSV IMPORT =====
-
         [HttpPost("{id}/import-csv")]
         [ProducesResponseType(typeof(ApiResponse<CsvImportResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -247,8 +241,6 @@ namespace WebApplicationAPI.Controllers
             }
         }
 
-        // ===== ANALYTICS =====
-
         [HttpGet("{id}/statement")]
         [ProducesResponseType(typeof(ApiResponse<CreditCardStatementResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -278,6 +270,26 @@ namespace WebApplicationAPI.Controllers
             {
                 var result = await _service.GetCategoryAnalysisAsync(id, month, year);
                 return Ok(ApiResponse<List<CategoryAnalysisResponse>>.Success(result));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResponse<object>.Error($"Erro interno: {ex.Message}"));
+            }
+        }
+
+        [HttpGet("{id}/statement-period")]
+        [ProducesResponseType(typeof(ApiResponse<CreditCardStatementResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetStatementByPeriod(int id, [FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+        {
+            try
+            {
+                var result = await _service.GetStatementByPeriodAsync(id, startDate, endDate);
+                return Ok(ApiResponse<CreditCardStatementResponse>.Success(result, $"Extrato de {startDate:dd/MM/yyyy} até {endDate:dd/MM/yyyy}"));
             }
             catch (InvalidOperationException ex)
             {

@@ -3,8 +3,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace WebApplicationAPI.DTO
 {
-    // ===== CREDIT CARD DTOs =====
-
     public class CreateCreditCardRequest
     {
         [Required]
@@ -60,8 +58,6 @@ namespace WebApplicationAPI.DTO
         public DateTime UpdatedAt { get; set; }
     }
 
-    // ===== CREDIT CARD EXPENSE DTOs =====
-
     public class CreateCreditCardExpenseRequest
     {
         [Required]
@@ -116,8 +112,6 @@ namespace WebApplicationAPI.DTO
         public DateTime CreatedAt { get; set; }
     }
 
-    // ===== CSV IMPORT DTO =====
-
     public class CsvImportResult
     {
         public int TotalRecords { get; set; }
@@ -127,8 +121,6 @@ namespace WebApplicationAPI.DTO
         public List<string> Errors { get; set; } = new List<string>();
         public Dictionary<string, int> CategoriesCount { get; set; } = new Dictionary<string, int>();
     }
-
-    // ===== STATEMENT DTO =====
 
     public class CreditCardStatementResponse
     {
@@ -143,8 +135,6 @@ namespace WebApplicationAPI.DTO
         public decimal UsagePercentage => CardLimit > 0 ? (TotalAmount / CardLimit) * 100 : 0;
         public List<CreditCardExpenseResponse> Expenses { get; set; } = new List<CreditCardExpenseResponse>();
     }
-
-    // ===== CATEGORY ANALYSIS DTO =====
 
     public class CategoryAnalysisResponse
     {

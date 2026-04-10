@@ -1,8 +1,4 @@
--- =============================================
--- MIGRATION: Criar Stored Procedures
--- =============================================
 
--- 1. Buscar todos os usuários
 CREATE PROCEDURE sp_GetAllUsers
 AS
 BEGIN
@@ -14,7 +10,6 @@ BEGIN
 END
 GO
 
--- 2. Buscar usuário por ID
 CREATE PROCEDURE sp_GetUserById
     @Id INT
 AS
@@ -27,7 +22,6 @@ BEGIN
 END
 GO
 
--- 3. Buscar usuário por Email
 CREATE PROCEDURE sp_GetUserByEmail
     @Email NVARCHAR(100)
 AS
@@ -40,7 +34,6 @@ BEGIN
 END
 GO
 
--- 4. Criar novo usuário
 CREATE PROCEDURE sp_CreateUser
     @Name NVARCHAR(100),
     @Email NVARCHAR(100)
@@ -55,7 +48,6 @@ BEGIN
 END
 GO
 
--- 5. Atualizar usuário
 CREATE PROCEDURE sp_UpdateUser
     @Id INT,
     @Name NVARCHAR(100),
@@ -73,7 +65,6 @@ BEGIN
 END
 GO
 
--- 6. Deletar usuário
 CREATE PROCEDURE sp_DeleteUser
     @Id INT
 AS
@@ -87,7 +78,6 @@ BEGIN
 END
 GO
 
--- 7. Buscar usuários com paginação e filtro
 CREATE PROCEDURE sp_SearchUsers
     @SearchTerm NVARCHAR(100) = NULL,
     @PageNumber INT = 1,
@@ -98,7 +88,6 @@ BEGIN
 
     DECLARE @Offset INT = (@PageNumber - 1) * @PageSize;
 
-    -- Total de registros (com filtro se informado)
     DECLARE @TotalCount INT;
     SELECT @TotalCount = COUNT(*) 
     FROM Users
@@ -106,7 +95,6 @@ BEGIN
            OR Name LIKE '%' + @SearchTerm + '%' 
            OR Email LIKE '%' + @SearchTerm + '%');
     
-    -- Registros paginados com TotalCount
     SELECT 
         Id, 
         Name, 
@@ -122,11 +110,7 @@ BEGIN
 END
 GO
 
--- =============================================
--- CONTROLE FINANCEIRO: Criar Stored Procedures
--- =============================================
 
--- Create
 CREATE OR ALTER PROCEDURE sp_CreateExpense
     @Month INT,
     @Year INT,

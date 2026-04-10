@@ -67,13 +67,10 @@ namespace WebApplicationAPI.DTO
         public decimal Debit { get; set; }
         public decimal Others { get; set; }
         public decimal Reserve { get; set; }
-
-        // Campos calculados
         public decimal SalaryTotal { get; set; }
         public decimal ExpensesTotal { get; set; }
         public decimal Balance { get; set; }
         public decimal CanSpend { get; set; }
-
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

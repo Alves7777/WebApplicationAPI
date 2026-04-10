@@ -1,6 +1,3 @@
--- =============================================
--- MIGRATION: Criar Tabela Expenses
--- =============================================
 
 CREATE TABLE Expenses (
     Id INT PRIMARY KEY IDENTITY(1,1),

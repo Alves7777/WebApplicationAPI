@@ -110,12 +110,6 @@ namespace WebApplicationAPI.Controllers
             }
         }
 
-        /// <summary>
-        /// Busca usuários com paginação e filtro
-        /// </summary>
-        /// <param name="searchTerm">Termo para buscar no nome ou email (opcional)</param>
-        /// <param name="pageNumber">Número da página (padrão: 1)</param>
-        /// <param name="pageSize">Quantidade de itens por página (padrão: 10)</param>
         [HttpGet("search")]
         [ProducesResponseType(typeof(PagedUserResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

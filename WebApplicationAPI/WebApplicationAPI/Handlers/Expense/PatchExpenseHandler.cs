@@ -23,7 +23,6 @@ namespace WebApplicationAPI.Handlers.Expense
 
             var patch = request.Request;
 
-            // Atualiza apenas os campos que foram fornecidos
             if (patch.Month.HasValue) existing.Month = patch.Month.Value;
             if (patch.Year.HasValue) existing.Year = patch.Year.Value;
             if (!string.IsNullOrEmpty(patch.Description)) existing.Description = patch.Description;

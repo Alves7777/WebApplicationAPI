@@ -22,7 +22,6 @@ namespace WebApplicationAPI.Services
 
         public async Task<MonthlyFinancialResponse> CreateAsync(CreateMonthlyFinancialRequest request)
         {
-            // Validar duplicidade
             var existing = await _repository.GetByYearAndMonthAsync(request.Year, request.Month);
             if (existing != null)
             {
@@ -55,8 +54,6 @@ namespace WebApplicationAPI.Services
             {
                 throw new InvalidOperationException("Registro não encontrado");
             }
-
-            // Validar duplicidade (exceto o próprio registro)
             var duplicate = await _repository.GetByYearAndMonthAsync(request.Year, request.Month);
             if (duplicate != null && duplicate.Id != id)
             {
@@ -139,16 +136,9 @@ namespace WebApplicationAPI.Services
 
         private async Task<MonthlyFinancialResponse> MapToResponse(MonthlyFinancialControl entity)
         {
-            // Calcular SalaryTotal
             var salaryTotal = entity.Money + entity.RV + entity.Debit + entity.Others;
-
-            // Buscar ExpensesTotal
             var expensesTotal = await _repository.GetExpensesTotalByYearAndMonthAsync(entity.Year, entity.Month);
-
-            // Calcular Balance
             var balance = salaryTotal - expensesTotal;
-
-            // Calcular CanSpend
             var canSpend = balance - entity.Reserve;
 
             return new MonthlyFinancialResponse
