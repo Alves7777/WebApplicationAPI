@@ -300,5 +300,60 @@ namespace WebApplicationAPI.Controllers
                 return StatusCode(500, ApiResponse<object>.Error($"Erro interno: {ex.Message}"));
             }
         }
+
+        [HttpPost("{id}/simulate-purchase")]
+        [ProducesResponseType(typeof(ApiResponse<SimulatePurchaseResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> SimulatePurchase(int id, [FromBody] SimulatePurchaseRequest request)
+        {
+            try
+            {
+                var result = await _service.SimulatePurchaseAsync(id, request);
+                return Ok(ApiResponse<SimulatePurchaseResponse>.Success(result, $"Simulação de compra: {result.Recommendation}"));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResponse<object>.Error($"Erro interno: {ex.Message}"));
+            }
+        }
+
+        [HttpPost("{id}/confirm-purchase")]
+        [ProducesResponseType(typeof(ApiResponse<InstallmentPurchaseResponse>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ConfirmPurchase(int id, [FromBody] ConfirmPurchaseRequest request)
+        {
+            try
+            {
+                var result = await _service.ConfirmPurchaseAsync(id, request);
+                return StatusCode(201, ApiResponse<InstallmentPurchaseResponse>.Success(result, "Compra parcelada registrada com sucesso"));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResponse<object>.Error($"Erro interno: {ex.Message}"));
+            }
+        }
+
+        [HttpGet("{id}/installment-purchases")]
+        [ProducesResponseType(typeof(ApiResponse<List<InstallmentPurchaseResponse>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetInstallmentPurchases(int id)
+        {
+            try
+            {
+                var result = await _service.GetInstallmentPurchasesAsync(id);
+                return Ok(ApiResponse<List<InstallmentPurchaseResponse>>.Success(result));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResponse<object>.Error($"Erro interno: {ex.Message}"));
+            }
+        }
     }
 }

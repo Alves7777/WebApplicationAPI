@@ -81,5 +81,27 @@ namespace WebApplicationAPI.Repositories
             var result = await connection.QueryFirstOrDefaultAsync<Expense>("sp_GetExpenseById", new { Id = id }, commandType: CommandType.StoredProcedure);
             return result;
         }
+
+        public async Task<decimal> GetTotalExpensesByMonthAsync(int month, int year)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var result = await connection.QueryFirstOrDefaultAsync<decimal>(
+                "sp_GetExpensesTotalByYearAndMonth",
+                new { Year = year, Month = month },
+                commandType: CommandType.StoredProcedure
+            );
+            return result;
+        }
+
+        public async Task<decimal> GetTotalExpensesByMonthExcludingCategoryAsync(int month, int year, string excludeCategory)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var result = await connection.QueryFirstOrDefaultAsync<decimal>(
+                "sp_GetExpensesTotalByMonthExcludingCategory",
+                new { Year = year, Month = month, ExcludeCategory = excludeCategory },
+                commandType: CommandType.StoredProcedure
+            );
+            return result;
+        }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -17,10 +18,17 @@ namespace WebApplicationAPI.Services
     public class CreditCardService : ICreditCardService
     {
         private readonly ICreditCardRepository _repository;
+        private readonly IMonthlyFinancialRepository _monthlyFinancialRepository;
+        private readonly IExpenseRepository _expenseRepository;
 
-        public CreditCardService(ICreditCardRepository repository)
+        public CreditCardService(
+            ICreditCardRepository repository, 
+            IMonthlyFinancialRepository monthlyFinancialRepository,
+            IExpenseRepository expenseRepository)
         {
             _repository = repository;
+            _monthlyFinancialRepository = monthlyFinancialRepository;
+            _expenseRepository = expenseRepository;
         }
 
         public async Task<CreditCardResponse> CreateAsync(CreateCreditCardRequest request)
@@ -257,7 +265,24 @@ namespace WebApplicationAPI.Services
                 throw new InvalidOperationException("Cartão não encontrado");
             }
 
-            var expenses = await _repository.GetExpensesByCardAsync(creditCardId, month, year);
+            var closingDay = card.ClosingDay ?? 28;
+
+            var closingMonth = month;
+            var closingYear = year;
+
+            if (month == 1)
+            {
+                closingMonth = 12;
+                closingYear = year - 1;
+            }
+            else
+            {
+                closingMonth = month - 1;
+            }
+
+            var (periodStart, periodEnd) = CalculateBillingPeriod(closingYear, closingMonth, closingDay);
+
+            var expenses = await _repository.GetExpensesByPeriodAsync(creditCardId, periodStart, periodEnd);
 
             return new CreditCardStatementResponse
             {
@@ -265,6 +290,8 @@ namespace WebApplicationAPI.Services
                 Brand = card.Brand,
                 Month = month,
                 Year = year,
+                BillingPeriodStart = periodStart,
+                BillingPeriodEnd = periodEnd,
                 TotalAmount = expenses.Sum(e => e.Amount),
                 TotalTransactions = expenses.Count,
                 CardLimit = card.CardLimit,
@@ -274,7 +301,30 @@ namespace WebApplicationAPI.Services
 
         public async Task<List<CategoryAnalysisResponse>> GetCategoryAnalysisAsync(int creditCardId, int month, int year)
         {
-            var expenses = await _repository.GetExpensesByCardAsync(creditCardId, month, year);
+            var card = await _repository.GetByIdAsync(creditCardId);
+            if (card == null)
+            {
+                throw new InvalidOperationException("Cartão não encontrado");
+            }
+
+            var closingDay = card.ClosingDay ?? 28;
+
+            var closingMonth = month;
+            var closingYear = year;
+
+            if (month == 1)
+            {
+                closingMonth = 12;
+                closingYear = year - 1;
+            }
+            else
+            {
+                closingMonth = month - 1;
+            }
+
+            var (periodStart, periodEnd) = CalculateBillingPeriod(closingYear, closingMonth, closingDay);
+
+            var expenses = await _repository.GetExpensesByPeriodAsync(creditCardId, periodStart, periodEnd);
             var totalAmount = expenses.Sum(e => e.Amount);
 
             return expenses
@@ -411,7 +461,266 @@ namespace WebApplicationAPI.Services
 
             return "Outros";
         }
+
+        public async Task<SimulatePurchaseResponse> SimulatePurchaseAsync(int creditCardId, SimulatePurchaseRequest request)
+        {
+            var card = await _repository.GetByIdAsync(creditCardId);
+            if (card == null)
+            {
+                throw new InvalidOperationException("Cartão não encontrado");
+            }
+
+            var installmentAmount = request.Amount / request.Installments;
+            var currentDate = DateTime.Now;
+            var analysis = new List<MonthAnalysis>();
+            int riskCount = 0;
+            int safeCount = 0;
+            var riskMonths = new List<string>();
+            decimal totalSalary = 0;
+            decimal totalExpenses = 0;
+            decimal totalAvailable = 0;
+
+            var closingDay = card.ClosingDay ?? 28;
+
+            for (int i = 0; i < request.Installments; i++)
+            {
+                var targetDate = currentDate.AddMonths(i);
+                var targetMonth = targetDate.Month;
+                var targetYear = targetDate.Year;
+                var monthName = new DateTime(targetYear, targetMonth, 1).ToString("MMMM", new System.Globalization.CultureInfo("pt-BR"));
+
+                var (periodStart, periodEnd) = CalculateBillingPeriod(targetYear, targetMonth, closingDay);
+
+                var monthlyControl = await GetMonthlyControlData(targetMonth, targetYear);
+
+                var creditCardExpenses = await _repository.GetExpensesByPeriodAsync(creditCardId, periodStart, periodEnd);
+                var creditCardTotal = creditCardExpenses.Sum(e => e.Amount);
+
+                var otherExpensesTotal = await _expenseRepository.GetTotalExpensesByMonthExcludingCategoryAsync(
+                    targetMonth, 
+                    targetYear, 
+                    "Cartão de Crédito"
+                );
+
+                var existingInstallments = await _repository.GetActiveInstallmentsByMonthAsync(creditCardId, targetMonth, targetYear);
+                var existingInstallmentsTotal = existingInstallments.Sum(inst => inst.InstallmentAmount);
+
+                var salary = monthlyControl?.SalaryTotal ?? 0;
+                var reserve = monthlyControl?.Reserve ?? 0;
+                var hasControl = monthlyControl != null;
+
+                var totalCommitment = creditCardTotal + otherExpensesTotal + existingInstallmentsTotal + installmentAmount;
+                var availableAfter = salary - totalCommitment - reserve;
+
+                string status;
+                string alert = null;
+
+                if (!hasControl)
+                {
+                    status = "SEM_CONTROLE";
+                    alert = "Mês sem controle financeiro cadastrado";
+                    riskCount++;
+                    riskMonths.Add($"{monthName}/{targetYear}");
+                }
+                else if (availableAfter < 0)
+                {
+                    status = "RISCO";
+                    alert = $"Saldo negativo de {availableAfter:C}";
+                    riskCount++;
+                    riskMonths.Add($"{monthName}/{targetYear}");
+                }
+                else if (availableAfter < 200)
+                {
+                    status = "ATENÇÃO";
+                    alert = $"Sobra apenas {availableAfter:C}";
+                    safeCount++;
+                }
+                else
+                {
+                    status = "OK";
+                    safeCount++;
+                }
+
+                totalSalary += salary;
+                totalExpenses += (creditCardTotal + otherExpensesTotal);
+                totalAvailable += availableAfter;
+
+                analysis.Add(new MonthAnalysis
+                {
+                    Month = targetMonth,
+                    Year = targetYear,
+                    MonthName = monthName,
+                    BillingPeriodStart = periodStart,
+                    BillingPeriodEnd = periodEnd,
+                    Salary = salary,
+                    CreditCardExpenses = creditCardTotal,
+                    OtherExpenses = otherExpensesTotal,
+                    CurrentExpenses = creditCardTotal + otherExpensesTotal,
+                    ProjectedExpenses = creditCardTotal + otherExpensesTotal,
+                    Reserve = reserve,
+                    ExistingInstallments = existingInstallmentsTotal,
+                    NewInstallment = installmentAmount,
+                    TotalCommitment = totalCommitment,
+                    AvailableAfter = availableAfter,
+                    Status = status,
+                    Alert = alert,
+                    HasMonthlyControl = hasControl
+                });
+            }
+
+            string recommendation;
+            bool canAfford;
+
+            if (riskCount == 0)
+            {
+                recommendation = "PODE COMPRAR";
+                canAfford = true;
+            }
+            else if (riskCount <= 2)
+            {
+                recommendation = "ATENÇÃO - Aperte o cinto nos meses destacados";
+                canAfford = true;
+            }
+            else
+            {
+                recommendation = "NÃO RECOMENDADO - Você não terá condições de pagar";
+                canAfford = false;
+            }
+
+            return new SimulatePurchaseResponse
+            {
+                CanAfford = canAfford,
+                Recommendation = recommendation,
+                PurchaseAmount = request.Amount,
+                InstallmentAmount = installmentAmount,
+                Installments = request.Installments,
+                Analysis = analysis,
+                Summary = new SimulationSummary
+                {
+                    TotalImpact = request.Amount,
+                    MonthlyImpact = installmentAmount,
+                    RiskMonthsCount = riskCount,
+                    SafeMonthsCount = safeCount,
+                    RiskMonths = riskMonths,
+                    AverageSalary = request.Installments > 0 ? totalSalary / request.Installments : 0,
+                    AverageExpenses = request.Installments > 0 ? totalExpenses / request.Installments : 0,
+                    AverageAvailable = request.Installments > 0 ? totalAvailable / request.Installments : 0
+                }
+            };
+        }
+
+        public async Task<InstallmentPurchaseResponse> ConfirmPurchaseAsync(int creditCardId, ConfirmPurchaseRequest request)
+        {
+            var card = await _repository.GetByIdAsync(creditCardId);
+            if (card == null)
+            {
+                throw new InvalidOperationException("Cartão não encontrado");
+            }
+
+            var currentDate = DateTime.Now;
+            var installmentAmount = request.Amount / request.Installments;
+
+            var purchase = new InstallmentPurchase
+            {
+                CreditCardId = creditCardId,
+                Description = request.Description,
+                TotalAmount = request.Amount,
+                InstallmentCount = request.Installments,
+                InstallmentAmount = installmentAmount,
+                FirstInstallmentMonth = currentDate.Month,
+                FirstInstallmentYear = currentDate.Year,
+                Status = "ATIVA",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var id = await _repository.CreateInstallmentPurchaseAsync(purchase);
+            purchase.Id = id;
+
+            return new InstallmentPurchaseResponse
+            {
+                Id = purchase.Id,
+                CreditCardId = purchase.CreditCardId,
+                Description = purchase.Description,
+                TotalAmount = purchase.TotalAmount,
+                InstallmentCount = purchase.InstallmentCount,
+                InstallmentAmount = purchase.InstallmentAmount,
+                FirstInstallmentMonth = purchase.FirstInstallmentMonth,
+                FirstInstallmentYear = purchase.FirstInstallmentYear,
+                Status = purchase.Status,
+                CreatedAt = purchase.CreatedAt,
+                RemainingInstallments = purchase.InstallmentCount,
+                RemainingAmount = purchase.TotalAmount
+            };
+        }
+
+        public async Task<List<InstallmentPurchaseResponse>> GetInstallmentPurchasesAsync(int creditCardId)
+        {
+            var purchases = await _repository.GetAllInstallmentPurchasesAsync(creditCardId);
+            var currentDate = DateTime.Now;
+
+            return purchases.Select(p =>
+            {
+                var monthsPassed = ((currentDate.Year - p.FirstInstallmentYear) * 12) + (currentDate.Month - p.FirstInstallmentMonth);
+                var remaining = Math.Max(0, p.InstallmentCount - monthsPassed);
+
+                return new InstallmentPurchaseResponse
+                {
+                    Id = p.Id,
+                    CreditCardId = p.CreditCardId,
+                    Description = p.Description,
+                    TotalAmount = p.TotalAmount,
+                    InstallmentCount = p.InstallmentCount,
+                    InstallmentAmount = p.InstallmentAmount,
+                    FirstInstallmentMonth = p.FirstInstallmentMonth,
+                    FirstInstallmentYear = p.FirstInstallmentYear,
+                    Status = p.Status,
+                    CreatedAt = p.CreatedAt,
+                    RemainingInstallments = remaining,
+                    RemainingAmount = remaining * p.InstallmentAmount
+                };
+            }).ToList();
+        }
+
+        private async Task<MonthlyFinancialControlData> GetMonthlyControlData(int month, int year)
+        {
+            var control = await _monthlyFinancialRepository.GetByYearAndMonthAsync(year, month);
+
+            if (control == null)
+                return null;
+
+            return new MonthlyFinancialControlData
+            {
+                SalaryTotal = control.Money + control.RV + control.Debit + control.Others,
+                Reserve = control.Reserve
+            };
+        }
+
+        private (DateTime PeriodStart, DateTime PeriodEnd) CalculateBillingPeriod(int year, int month, int closingDay)
+        {
+            DateTime periodEnd;
+            DateTime periodStart;
+
+            if (month == 1)
+            {
+                periodStart = new DateTime(year - 1, 12, Math.Min(closingDay, DateTime.DaysInMonth(year - 1, 12)));
+                periodEnd = new DateTime(year, month, Math.Min(closingDay, DateTime.DaysInMonth(year, month))).AddDays(-1);
+            }
+            else
+            {
+                periodStart = new DateTime(year, month - 1, Math.Min(closingDay, DateTime.DaysInMonth(year, month - 1)));
+                periodEnd = new DateTime(year, month, Math.Min(closingDay, DateTime.DaysInMonth(year, month))).AddDays(-1);
+            }
+
+            return (periodStart, periodEnd);
+        }
     }
+
+    public class MonthlyFinancialControlData
+    {
+        public decimal SalaryTotal { get; set; }
+        public decimal Reserve { get; set; }
+    }
+
     public class CsvExpenseRecord
     {
         [Name("date")]

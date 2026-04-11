@@ -271,5 +271,90 @@ namespace WebApplicationAPI.Repositories
 
             return result.ToList();
         }
+
+        public async Task<int> CreateInstallmentPurchaseAsync(InstallmentPurchase purchase)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@CreditCardId", purchase.CreditCardId);
+            parameters.Add("@Description", purchase.Description);
+            parameters.Add("@TotalAmount", purchase.TotalAmount);
+            parameters.Add("@InstallmentCount", purchase.InstallmentCount);
+            parameters.Add("@InstallmentAmount", purchase.InstallmentAmount);
+            parameters.Add("@FirstInstallmentMonth", purchase.FirstInstallmentMonth);
+            parameters.Add("@FirstInstallmentYear", purchase.FirstInstallmentYear);
+            parameters.Add("@Status", purchase.Status);
+            parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
+            await connection.ExecuteAsync(
+                "sp_CreateInstallmentPurchase",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+
+            return parameters.Get<int>("@Id");
+        }
+
+        public async Task<List<InstallmentPurchase>> GetActiveInstallmentsByMonthAsync(int creditCardId, int month, int year)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            var result = await connection.QueryAsync<InstallmentPurchase>(
+                "sp_GetActiveInstallmentsByMonth",
+                new
+                {
+                    CreditCardId = creditCardId,
+                    Month = month,
+                    Year = year
+                },
+                commandType: CommandType.StoredProcedure
+            );
+
+            return result.ToList();
+        }
+
+        public async Task<List<InstallmentPurchase>> GetAllActiveInstallmentsByMonthAsync(int month, int year)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            var result = await connection.QueryAsync<InstallmentPurchase>(
+                "sp_GetAllActiveInstallmentsByMonth",
+                new
+                {
+                    Month = month,
+                    Year = year
+                },
+                commandType: CommandType.StoredProcedure
+            );
+
+            return result.ToList();
+        }
+
+        public async Task<List<InstallmentPurchase>> GetAllInstallmentPurchasesAsync(int creditCardId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            var result = await connection.QueryAsync<InstallmentPurchase>(
+                "sp_GetAllInstallmentPurchases",
+                new { CreditCardId = creditCardId },
+                commandType: CommandType.StoredProcedure
+            );
+
+            return result.ToList();
+        }
+
+        public async Task<bool> UpdateInstallmentPurchaseStatusAsync(int id, string status)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            var rows = await connection.ExecuteAsync(
+                "sp_UpdateInstallmentPurchaseStatus",
+                new { Id = id, Status = status },
+                commandType: CommandType.StoredProcedure
+            );
+
+            return rows > 0;
+        }
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -21,5 +22,9 @@ namespace WebApplicationAPI.Services.Interfaces
         Task<CreditCardStatementResponse> GetStatementAsync(int creditCardId, int month, int year);
         Task<List<CategoryAnalysisResponse>> GetCategoryAnalysisAsync(int creditCardId, int month, int year);
         Task<CreditCardStatementResponse> GetStatementByPeriodAsync(int creditCardId, DateTime startDate, DateTime endDate);
+
+        Task<SimulatePurchaseResponse> SimulatePurchaseAsync(int creditCardId, SimulatePurchaseRequest request);
+        Task<InstallmentPurchaseResponse> ConfirmPurchaseAsync(int creditCardId, ConfirmPurchaseRequest request);
+        Task<List<InstallmentPurchaseResponse>> GetInstallmentPurchasesAsync(int creditCardId);
     }
 }

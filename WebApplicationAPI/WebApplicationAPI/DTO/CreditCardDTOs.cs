@@ -128,6 +128,8 @@ namespace WebApplicationAPI.DTO
         public string? Brand { get; set; }
         public int Month { get; set; }
         public int Year { get; set; }
+        public DateTime? BillingPeriodStart { get; set; }
+        public DateTime? BillingPeriodEnd { get; set; }
         public decimal TotalAmount { get; set; }
         public int TotalTransactions { get; set; }
         public decimal CardLimit { get; set; }
