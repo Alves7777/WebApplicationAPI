@@ -1,0 +1,225 @@
+@page "/monthly-financial"
+@using FinancialControlUI.Models
+@using FinancialControlUI.Services
+@inject MonthlyFinancialService MonthlyFinancialService
+
+<h3>Controle Mensal Financeiro</h3>
+
+@if (loading)
+{
+    <p><em>Carregando...</em></p>
+}
+else
+{
+    <div class="mb-3">
+        <button class="btn btn-primary" @onclick="ShowCreateForm">Novo Controle Mensal</button>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Filtros</h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="form-label">Ano</label>
+                    <InputNumber class="form-control" @bind-Value="filterYear" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Mês</label>
+                    <InputNumber class="form-control" @bind-Value="filterMonth" />
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-secondary" @onclick="LoadMonthlyFinancials">Filtrar</button>
+                    <button class="btn btn-outline-secondary ms-2" @onclick="ClearFilters">Limpar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (showForm)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">@(editingMonthly != null ? "Editar Controle Mensal" : "Novo Controle Mensal")</h5>
+                <EditForm Model="monthlyRequest" OnValidSubmit="SaveMonthlyFinancial">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Ano</label>
+                            <InputNumber class="form-control" @bind-Value="monthlyRequest.Year" disabled="@(editingMonthly != null)" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Mês</label>
+                            <InputNumber class="form-control" @bind-Value="monthlyRequest.Month" disabled="@(editingMonthly != null)" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Dinheiro Disponível</label>
+                            <InputNumber class="form-control" @bind-Value="monthlyRequest.Money" />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success">Salvar</button>
+                    <button type="button" class="btn btn-secondary" @onclick="CancelForm">Cancelar</button>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    @if (successMessage != null)
+    {
+        <div class="alert alert-success">@successMessage</div>
+    }
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Mês/Ano</th>
+                    <th>Dinheiro</th>
+                    <th>Salário Total</th>
+                    <th>Despesas Total</th>
+                    <th>Balanço</th>
+                    <th>Pode Gastar</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var monthly in monthlyFinancials)
+                {
+                    <tr>
+                        <td>@monthly.Id</td>
+                        <td>@monthly.MonthName/@monthly.Year</td>
+                        <td>@monthly.Money.ToString("C")</td>
+                        <td>@monthly.SalaryTotal.ToString("C")</td>
+                        <td>@monthly.ExpensesTotal.ToString("C")</td>
+                        <td class="@(monthly.Balance >= 0 ? "text-success" : "text-danger")">
+                            @monthly.Balance.ToString("C")
+                        </td>
+                        <td>@monthly.CanSpend.ToString("C")</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" @onclick="() => EditMonthlyFinancial(monthly)">Editar</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteMonthlyFinancial(monthly.Id)">Deletar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    </div>
+}
+
+@code {
+    private List<MonthlyFinancial> monthlyFinancials = new();
+    private CreateMonthlyFinancialRequest monthlyRequest = new();
+    private MonthlyFinancial? editingMonthly;
+    private bool loading = true;
+    private bool showForm = false;
+    private string? errorMessage;
+    private string? successMessage;
+
+    private int? filterYear = DateTime.Now.Year;
+    private int? filterMonth;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMonthlyFinancials();
+    }
+
+    private async Task LoadMonthlyFinancials()
+    {
+        loading = true;
+        try
+        {
+            monthlyFinancials = await MonthlyFinancialService.GetAllAsync(filterYear, filterMonth);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar controles mensais: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void ShowCreateForm()
+    {
+        editingMonthly = null;
+        monthlyRequest = new CreateMonthlyFinancialRequest
+        {
+            Year = DateTime.Now.Year,
+            Month = DateTime.Now.Month
+        };
+        showForm = true;
+        errorMessage = null;
+        successMessage = null;
+    }
+
+    private void EditMonthlyFinancial(MonthlyFinancial monthly)
+    {
+        editingMonthly = monthly;
+        monthlyRequest = new CreateMonthlyFinancialRequest
+        {
+            Year = monthly.Year,
+            Month = monthly.Month,
+            Money = monthly.Money
+        };
+        showForm = true;
+        errorMessage = null;
+        successMessage = null;
+    }
+
+    private async Task SaveMonthlyFinancial()
+    {
+        try
+        {
+            if (editingMonthly != null)
+            {
+                var updateRequest = new UpdateMonthlyFinancialRequest
+                {
+                    Money = monthlyRequest.Money
+                };
+                await MonthlyFinancialService.UpdateAsync(editingMonthly.Id, updateRequest);
+                successMessage = "Controle mensal atualizado com sucesso!";
+            }
+            else
+            {
+                await MonthlyFinancialService.CreateAsync(monthlyRequest);
+                successMessage = "Controle mensal criado com sucesso!";
+            }
+            showForm = false;
+            await LoadMonthlyFinancials();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao salvar controle mensal: {ex.Message}";
+        }
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+        editingMonthly = null;
+    }
+
+    private void ClearFilters()
+    {
+        filterYear = null;
+        filterMonth = null;
+    }
+
+    private async Task DeleteMonthlyFinancial(int id)
+    {
+        if (await MonthlyFinancialService.DeleteAsync(id))
+        {
+            successMessage = "Controle mensal deletado com sucesso!";
+            await LoadMonthlyFinancials();
+        }
+        else
+        {
+            errorMessage = "Erro ao deletar controle mensal.";
+        }
+    }
+}

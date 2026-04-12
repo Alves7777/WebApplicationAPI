@@ -1,0 +1,280 @@
+@page "/simulator"
+@page "/simulator/{CardId:int}"
+@using FinancialControlUI.Services
+@using FinancialControlUI.Models
+@inject CreditCardService CardService
+@inject NavigationManager Navigation
+
+<PageTitle>Simulador de Compra</PageTitle>
+
+<div class="container-fluid p-3">
+    <div class="mb-3">
+        <button class="btn btn-link text-decoration-none p-0" @onclick='() => Navigation.NavigateTo("/")'>
+            ? Voltar
+        </button>
+        <h1 class="display-6 mt-2">?? Simulador de Compra</h1>
+        <p class="text-muted">Analise se você pode fazer a compra</p>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Dados da Compra</h5>
+
+            <div class="mb-3">
+                <label class="form-label">Cartão</label>
+                <select class="form-select" @bind="selectedCardId">
+                    <option value="0">Selecione um cartão</option>
+                    @foreach (var card in cards)
+                    {
+                        <option value="@card.Id">@card.Name - Limite: R$ @card.CardLimit.ToString("N2")</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Valor da Compra (R$)</label>
+                <input type="number" class="form-control" @bind="amount" placeholder="800.00" step="0.01" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Parcelas</label>
+                <select class="form-select" @bind="installments">
+                    @foreach (var num in new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 24 })
+                    {
+                        var installmentValue = amount > 0 ? (amount / num).ToString("N2") : "0.00";
+                        <option value="@num">@num x de R$ @installmentValue</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Descrição</label>
+                <input type="text" class="form-control" @bind="description" placeholder="Ex: Notebook Dell" maxlength="500" />
+            </div>
+
+            <button class="btn btn-primary w-100" @onclick="HandleSimulate" disabled="@(loading || selectedCardId == 0 || amount <= 0 || string.IsNullOrEmpty(description))">
+                @if (loading)
+                {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                    <span>Simulando...</span>
+                }
+                else
+                {
+                    <span>?? SIMULAR COMPRA</span>
+                }
+            </button>
+        </div>
+    </div>
+
+    @if (simulation != null)
+    {
+        <div class="card mb-4 border-@GetRecommendationBorder() border-3">
+            <div class="card-body">
+                <h5 class="card-title">?? Resultado</h5>
+                <h3 class="text-@GetRecommendationColor() mb-3">@simulation.Recommendation</h3>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <small class="text-muted d-block">Valor Total</small>
+                        <h5>R$ @simulation.PurchaseAmount.ToString("N2")</h5>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted d-block">Parcela</small>
+                        <h5>@simulation.Installments x de R$ @simulation.InstallmentAmount.ToString("N2")</h5>
+                    </div>
+                </div>
+
+                <div class="alert alert-light">
+                    <strong>Resumo:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>?? Meses Seguros: @simulation.Summary.SafeMonthsCount</li>
+                        <li>?? Meses em Risco: @simulation.Summary.RiskMonthsCount</li>
+                        @if (simulation.Summary.RiskMonths.Any())
+                        {
+                            <li class="text-danger fw-bold">?? Atenção: @string.Join(", ", simulation.Summary.RiskMonths)</li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <h5 class="mb-3">?? Análise Mês a Mês</h5>
+        @foreach (var month in simulation.Analysis)
+        {
+            <div class="card mb-3 border-@GetStatusBorder(month.Status)">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="mb-0 text-capitalize">@month.MonthName/@month.Year</h6>
+                            <small class="text-muted">
+                                @month.BillingPeriodStart.ToString("dd/MM") a @month.BillingPeriodEnd.ToString("dd/MM")
+                            </small>
+                        </div>
+                        <span class="badge bg-@GetStatusColor(month.Status)">@month.Status</span>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(month.Alert))
+                    {
+                        <div class="alert alert-warning py-2 px-3 mb-2 small">
+                            ?? @month.Alert
+                        </div>
+                    }
+
+                    <div class="row g-2 small">
+                        <div class="col-6">
+                            <span class="text-muted">?? Salário</span>
+                            <div class="fw-bold">R$ @month.Salary.ToString("N2")</div>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted">?? Cartão</span>
+                            <div class="fw-bold">R$ @month.CreditCardExpenses.ToString("N2")</div>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted">?? Outros</span>
+                            <div class="fw-bold">R$ @month.OtherExpenses.ToString("N2")</div>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted">?? Parcelas</span>
+                            <div class="fw-bold">R$ @month.ExistingInstallments.ToString("N2")</div>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted">?? Nova Parcela</span>
+                            <div class="fw-bold text-primary">R$ @month.NewInstallment.ToString("N2")</div>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted">? Vai Sobrar</span>
+                            <div class="fw-bold fs-5 @(month.AvailableAfter >= 0 ? "text-success" : "text-danger")">
+                                R$ @month.AvailableAfter.ToString("N2")
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (simulation.CanAfford)
+        {
+            <button class="btn btn-success w-100 mb-5" @onclick="HandleConfirm">
+                ? CONFIRMAR COMPRA
+            </button>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int CardId { get; set; }
+
+    private List<CreditCard> cards = new();
+    private MonthlyFinancial? monthlyControl;
+    private SimulatePurchaseResponse? simulation;
+    private bool loading = true;
+    private int selectedCardId;
+    private decimal amount;
+    private int installments = 1;
+    private string description = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCards();
+        if (CardId > 0) selectedCardId = CardId;
+    }
+
+    private async Task LoadCards()
+    {
+        try
+        {
+            loading = true;
+            cards = await CardService.GetAllCardsAsync();
+            if (cards.Any() && selectedCardId == 0)
+            {
+                selectedCardId = cards.First().Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro: {ex.Message}");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task HandleSimulate()
+    {
+        if (selectedCardId == 0 || amount <= 0 || string.IsNullOrEmpty(description))
+            return;
+
+        try
+        {
+            loading = true;
+            simulation = await CardService.SimulatePurchaseAsync(selectedCardId, new SimulatePurchaseRequest
+            {
+                Amount = amount,
+                Installments = installments,
+                Description = description
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro: {ex.Message}");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task HandleConfirm()
+    {
+        try
+        {
+            var success = await CardService.ConfirmPurchaseAsync(selectedCardId, new SimulatePurchaseRequest
+            {
+                Amount = amount,
+                Installments = installments,
+                Description = description
+            });
+
+            if (success)
+            {
+                simulation = null;
+                amount = 0;
+                description = "";
+                installments = 1;
+                Navigation.NavigateTo("/");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro: {ex.Message}");
+        }
+    }
+
+    private string GetStatusColor(string status) => status switch
+    {
+        "OK" => "success",
+        "ATENÇÃO" => "warning",
+        "RISCO" => "danger",
+        _ => "secondary"
+    };
+
+    private string GetStatusBorder(string status) => status switch
+    {
+        "OK" => "success",
+        "ATENÇÃO" => "warning",
+        "RISCO" => "danger",
+        _ => "secondary"
+    };
+
+    private string GetRecommendationColor() => simulation?.Recommendation switch
+    {
+        string s when s.Contains("PODE COMPRAR") => "success",
+        string s when s.Contains("ATENÇÃO") => "warning",
+        string s when s.Contains("NÃO RECOMENDADO") => "danger",
+        _ => "secondary"
+    };
+
+    private string GetRecommendationBorder() => GetRecommendationColor();
+}

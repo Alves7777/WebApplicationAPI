@@ -1,0 +1,228 @@
+@page "/dashboard"
+@using FinancialControlUI.Models
+@using FinancialControlUI.Services
+@inject SummaryService SummaryService
+@inject ExpenseService ExpenseService
+@inject MonthlyFinancialService MonthlyFinancialService
+
+<Shared.BackButton />
+
+<h3>Dashboard Financeiro</h3>
+
+@if (loading)
+{
+    <p><em>Carregando...</em></p>
+}
+else
+{
+    @if (summary != null)
+    {
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card text-white bg-primary">
+                    <div class="card-body">
+                        <h5 class="card-title">Total de Despesas</h5>
+                        <h2>@summary.TotalExpenses.ToString("C")</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-white @(summary.Balance >= 0 ? "bg-success" : "bg-danger")">
+                    <div class="card-body">
+                        <h5 class="card-title">Balanço</h5>
+                        <h2>@summary.Balance.ToString("C")</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-white bg-info">
+                    <div class="card-body">
+                        <h5 class="card-title">Disponível para Gastar</h5>
+                        <h2>@summary.AvailableToSpend.ToString("C")</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Total por Categoria</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (summary.TotalByCategory != null && summary.TotalByCategory.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Categoria</th>
+                                            <th class="text-end">Valor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in summary.TotalByCategory.OrderByDescending(x => x.Value))
+                                        {
+                                            <tr>
+                                                <td>@item.Key</td>
+                                                <td class="text-end">@item.Value.ToString("C")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <p>Nenhuma categoria encontrada.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Total por Status</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (summary.TotalByStatus != null && summary.TotalByStatus.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Status</th>
+                                            <th class="text-end">Valor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in summary.TotalByStatus.OrderByDescending(x => x.Value))
+                                        {
+                                            <tr>
+                                                <td>@item.Key</td>
+                                                <td class="text-end">@item.Value.ToString("C")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <p>Nenhum status encontrado.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (currentMonth != null)
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Controle Mensal - @currentMonth.MonthName/@currentMonth.Year</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Dinheiro Disponível:</strong>
+                        <p>@currentMonth.Money.ToString("C")</p>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Salário Total:</strong>
+                        <p>@currentMonth.SalaryTotal.ToString("C")</p>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Despesas Total:</strong>
+                        <p>@currentMonth.ExpensesTotal.ToString("C")</p>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Pode Gastar:</strong>
+                        <p>@currentMonth.CanSpend.ToString("C")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (recentExpenses.Any())
+    {
+        <div class="card">
+            <div class="card-header">
+                <h5>Despesas Recentes</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Valor</th>
+                                <th>Categoria</th>
+                                <th>Status</th>
+                                <th>Data</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var expense in recentExpenses.Take(10))
+                            {
+                                <tr>
+                                    <td>@expense.Description</td>
+                                    <td>@expense.Amount.ToString("C")</td>
+                                    <td>@expense.Category</td>
+                                    <td>@expense.Status</td>
+                                    <td>@expense.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger mt-3">@errorMessage</div>
+    }
+}
+
+@code {
+    private FinancialSummary? summary;
+    private MonthlyFinancial? currentMonth;
+    private List<Expense> recentExpenses = new();
+    private bool loading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        loading = true;
+        try
+        {
+            var summaryTask = SummaryService.GetFinancialSummaryAsync();
+            var monthlyTask = MonthlyFinancialService.GetCurrentMonthAsync();
+            var expensesTask = ExpenseService.GetAllAsync(DateTime.Now.Month, DateTime.Now.Year);
+
+            await Task.WhenAll(summaryTask, monthlyTask, expensesTask);
+
+            summary = await summaryTask;
+            currentMonth = await monthlyTask;
+            recentExpenses = await expensesTask;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar dados do dashboard: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+}

@@ -1,0 +1,13 @@
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<button class="btn btn-back mb-3" @onclick="GoBack">
+    <span class="back-arrow">&#8592;</span> Voltar
+</button>
+
+@code {
+    private async Task GoBack()
+    {
+        await JS.InvokeVoidAsync("history.back");
+    }
+}
