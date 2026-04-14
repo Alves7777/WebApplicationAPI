@@ -365,15 +365,96 @@ public class UserService
 public class SummaryService
 {
     private readonly HttpClient _http;
+    private readonly MonthlyFinancialService _monthlyService;
 
-    public SummaryService(HttpClient http)
+    public SummaryService(HttpClient http, MonthlyFinancialService monthlyService)
     {
         _http = http;
+        _monthlyService = monthlyService;
     }
 
     public async Task<FinancialSummary?> GetFinancialSummaryAsync()
     {
-        var response = await _http.GetFromJsonAsync<FinancialSummary>("Summary");
-        return response;
+        try
+        {
+            var currentMonth = DateTime.Now.Month;
+            var currentYear = DateTime.Now.Year;
+
+            Console.WriteLine($"Buscando Summary para {currentMonth}/{currentYear}");
+
+            // Busca o controle mensal atual para pegar salário e reserva
+            MonthlyFinancial? monthlyControl = null;
+            decimal salary = 0;
+            decimal reserve = 0;
+
+            try
+            {
+                monthlyControl = await _monthlyService.GetCurrentMonthAsync();
+                if (monthlyControl != null)
+                {
+                    salary = monthlyControl.SalaryTotal;
+                    reserve = monthlyControl.Reserve;
+                    Console.WriteLine($"Controle mensal encontrado - Salário: {salary}, Reserva: {reserve}");
+                }
+                else
+                {
+                    Console.WriteLine("Nenhum controle mensal encontrado para o mês atual");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao buscar controle mensal: {ex.Message}");
+            }
+
+            // Monta a URL com os parâmetros
+            var url = $"Summary?month={currentMonth}&year={currentYear}&salary={salary}&reserve={reserve}";
+            Console.WriteLine($"Chamando API: {url}");
+
+            // Tenta buscar com wrapper ApiResponse
+            try
+            {
+                var responseWithWrapper = await _http.GetFromJsonAsync<ApiResponse<FinancialSummary>>(url);
+                if (responseWithWrapper?.Data != null)
+                {
+                    Console.WriteLine($"Response com wrapper recebido");
+                    Console.WriteLine($"TotalExpenses: {responseWithWrapper.Data.TotalExpenses}");
+                    Console.WriteLine($"Balance: {responseWithWrapper.Data.Balance}");
+                    Console.WriteLine($"AvailableToSpend: {responseWithWrapper.Data.AvailableToSpend}");
+                    return responseWithWrapper.Data;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Tentativa com wrapper falhou: {ex.Message}");
+            }
+
+            // Tenta buscar sem wrapper
+            var response = await _http.GetFromJsonAsync<FinancialSummary>(url);
+            Console.WriteLine($"Response direto recebido: {response != null}");
+
+            if (response != null)
+            {
+                Console.WriteLine($"TotalExpenses: {response.TotalExpenses}");
+                Console.WriteLine($"Balance: {response.Balance}");
+                Console.WriteLine($"AvailableToSpend: {response.AvailableToSpend}");
+            }
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao buscar Summary: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+
+            // Retorna um summary vazio em vez de null
+            return new FinancialSummary
+            {
+                TotalExpenses = 0,
+                Balance = 0,
+                AvailableToSpend = 0,
+                TotalByCategory = new Dictionary<string, decimal>(),
+                TotalByStatus = new Dictionary<string, decimal>()
+            };
+        }
     }
 }

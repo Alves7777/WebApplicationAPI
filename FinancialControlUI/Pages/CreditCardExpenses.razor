@@ -7,7 +7,7 @@
 
 <Shared.BackButton />
 
-<h3>?? Despesas do Cartão</h3>
+<h3>Despesas do Cartão</h3>
 
 @if (loading)
 {
@@ -18,8 +18,8 @@ else
     <div class="card mb-3">
         <div class="card-body">
             <h5 class="card-title">Cartão: @cardName</h5>
-            <button class="btn btn-primary" @onclick="ShowCreateForm">? Nova Despesa</button>
-            <button class="btn btn-secondary" @onclick="ShowImportCsvForm">?? Importar CSV</button>
+            <button class="btn btn-primary" @onclick="ShowCreateForm">Nova Despesa</button>
+            <button class="btn btn-secondary" @onclick="ShowImportCsvForm">Importar CSV</button>
         </div>
     </div>
 
@@ -101,7 +101,7 @@ else
             <div class="card-body">
                 <h5 class="card-title">Importar Despesas via CSV</h5>
                 <div class="alert alert-info">
-                    <strong>Formato:</strong> CategoryId,Amount,Description,PurchaseDate,Month,Year,Installments
+                    <strong>Formato:</strong> date,title,amount
                 </div>
                 <div class="mb-3">
                     <InputFile OnChange="HandleFileSelected" class="form-control" accept=".csv" />
@@ -164,8 +164,8 @@ else
                             }
                         </td>
                         <td>
-                            <button class="btn btn-sm btn-warning" @onclick="() => EditExpense(expense)">??</button>
-                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteExpense(expense.Id)">???</button>
+                            <button class="btn btn-sm btn-warning" @onclick="() => EditExpense(expense)">Editar</button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteExpense(expense.Id)">Excluir</button>
                         </td>
                     </tr>
                 }

@@ -6,7 +6,7 @@
 
 <Shared.BackButton />
 
-<h3>?? Extrato do Cartão</h3>
+<h3>Extrato do Cartão</h3>
 
 @if (loading)
 {
@@ -17,19 +17,52 @@ else
     <div class="card mb-3">
         <div class="card-body">
             <h5 class="card-title">@cardName</h5>
-            <div class="row">
-                <div class="col-md-4">
-                    <label class="form-label">Mês</label>
-                    <InputNumber class="form-control" @bind-Value="selectedMonth" />
+
+            <ul class="nav nav-tabs mb-3" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link @(searchMode == "monthly" ? "active" : "")" @onclick="ChangeToMonthly" type="button">
+                        Por Mês
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link @(searchMode == "period" ? "active" : "")" @onclick="ChangeToPeriod" type="button">
+                        Por Período
+                    </button>
+                </li>
+            </ul>
+
+            @if (searchMode == "monthly")
+            {
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">Mês</label>
+                        <InputNumber class="form-control" @bind-Value="selectedMonth" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Ano</label>
+                        <InputNumber class="form-control" @bind-Value="selectedYear" />
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button class="btn btn-primary" @onclick="LoadStatementByMonth">Buscar Extrato</button>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Ano</label>
-                    <InputNumber class="form-control" @bind-Value="selectedYear" />
+            }
+            else
+            {
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">Data Início</label>
+                        <InputDate class="form-control" @bind-Value="startDate" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Data Fim</label>
+                        <InputDate class="form-control" @bind-Value="endDate" />
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button class="btn btn-primary" @onclick="LoadStatementByPeriod">Buscar Extrato</button>
+                    </div>
                 </div>
-                <div class="col-md-4 d-flex align-items-end">
-                    <button class="btn btn-primary" @onclick="LoadStatement">Buscar Extrato</button>
-                </div>
-            </div>
+            }
         </div>
     </div>
 
@@ -141,11 +174,14 @@ else
     private string? errorMessage;
     private int selectedMonth = DateTime.Now.Month;
     private int selectedYear = DateTime.Now.Year;
+    private string searchMode = "monthly";
+    private DateTime startDate = DateTime.Now.AddDays(-30);
+    private DateTime endDate = DateTime.Now;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadCard();
-        await LoadStatement();
+        await LoadStatementByMonth();
     }
 
     private async Task LoadCard()
@@ -161,7 +197,17 @@ else
         }
     }
 
-    private async Task LoadStatement()
+    private void ChangeToMonthly()
+    {
+        searchMode = "monthly";
+    }
+
+    private void ChangeToPeriod()
+    {
+        searchMode = "period";
+    }
+
+    private async Task LoadStatementByMonth()
     {
         loading = true;
         errorMessage = null;
@@ -172,6 +218,24 @@ else
         catch (Exception ex)
         {
             errorMessage = $"Erro ao carregar extrato: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadStatementByPeriod()
+    {
+        loading = true;
+        errorMessage = null;
+        try
+        {
+            statement = await CreditCardService.GetStatementByPeriodAsync(CardId, startDate, endDate);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar extrato por período: {ex.Message}";
         }
         finally
         {
