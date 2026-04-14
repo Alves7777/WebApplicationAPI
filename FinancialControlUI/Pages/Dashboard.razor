@@ -1,9 +1,9 @@
 @page "/dashboard"
 @using FinancialControlUI.Models
 @using FinancialControlUI.Services
-@inject SummaryService SummaryService
-@inject ExpenseService ExpenseService
 @inject MonthlyFinancialService MonthlyFinancialService
+@inject ExpenseService ExpenseService
+@inject CategoryService CategoryService
 
 <Shared.BackButton />
 
@@ -15,22 +15,22 @@
 }
 else
 {
-    @if (summary != null)
+    @if (currentMonth != null)
     {
         <div class="row mb-4">
             <div class="col-md-4">
                 <div class="card text-white bg-primary">
                     <div class="card-body">
-                        <h5 style="color: white;" class="card-title">Total de Despesas</h5>
-                        <h2>@summary.TotalExpenses.ToString("C")</h2>
+                        <h5 style="color: white;" class="card-title">Despesas Total</h5>
+                        <h2>@currentMonth.ExpensesTotal.ToString("C")</h2>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card text-white @(summary.Balance >= 0 ? "bg-success" : "bg-danger")">
+                <div class="card text-white @(currentMonth.Balance >= 0 ? "bg-success" : "bg-danger")">
                     <div class="card-body">
                         <h5 class="card-title">Balanço</h5>
-                        <h2>@summary.Balance.ToString("C")</h2>
+                        <h2>@currentMonth.Balance.ToString("C")</h2>
                     </div>
                 </div>
             </div>
@@ -38,13 +38,13 @@ else
                 <div class="card text-white bg-info">
                     <div class="card-body">
                         <h5 class="card-title">Disponível para Gastar</h5>
-                        <h2>@summary.AvailableToSpend.ToString("C")</h2>
+                        <h2>@currentMonth.CanSpend.ToString("C")</h2>
                     </div>
                 </div>
             </div>
         </div>
 
-        @if (summary.TotalExpenses == 0 && !summary.TotalByCategory.Any())
+        @if (currentMonth.ExpensesTotal == 0)
         {
             <div class="alert alert-info">
                 <h5>Bem-vindo ao Dashboard!</h5>
@@ -65,7 +65,7 @@ else
                             <h5 class="text-white">Total por Categoria</h5>
                         </div>
                         <div class="card-body">
-                            @if (summary.TotalByCategory != null && summary.TotalByCategory.Any())
+                            @if (expensesByCategory != null && expensesByCategory.Any())
                             {
                                 <div class="table-responsive">
                                     <table class="table table-sm">
@@ -73,14 +73,16 @@ else
                                             <tr>
                                                 <th>Categoria</th>
                                                 <th class="text-end">Valor</th>
+                                                <th class="text-end">Qtd</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach (var item in summary.TotalByCategory.OrderByDescending(x => x.Value))
+                                            @foreach (var item in expensesByCategory.OrderByDescending(x => x.Value))
                                             {
                                                 <tr>
                                                     <td>@item.Key</td>
                                                     <td class="text-end">@item.Value.ToString("C")</td>
+                                                    <td class="text-end">@expensesCategoryCount[item.Key]</td>
                                                 </tr>
                                             }
                                         </tbody>
@@ -100,7 +102,7 @@ else
                             <h5 class="text-white">Total por Status</h5>
                         </div>
                         <div class="card-body">
-                            @if (summary.TotalByStatus != null && summary.TotalByStatus.Any())
+                            @if (expensesByStatus != null && expensesByStatus.Any())
                             {
                                 <div class="table-responsive">
                                     <table class="table table-sm">
@@ -108,14 +110,16 @@ else
                                             <tr>
                                                 <th>Status</th>
                                                 <th class="text-end">Valor</th>
+                                                <th class="text-end">Qtd</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach (var item in summary.TotalByStatus.OrderByDescending(x => x.Value))
+                                            @foreach (var item in expensesByStatus.OrderByDescending(x => x.Value))
                                             {
                                                 <tr>
                                                     <td>@item.Key</td>
                                                     <td class="text-end">@item.Value.ToString("C")</td>
+                                                    <td class="text-end">@expensesStatusCount[item.Key]</td>
                                                 </tr>
                                             }
                                         </tbody>
@@ -197,6 +201,14 @@ else
             </div>
         </div>
     }
+    else
+    {
+        <div class="alert alert-warning">
+            <h5>Controle Mensal não encontrado</h5>
+            <p>Você precisa criar um controle mensal para o mês atual (@DateTime.Now.Month/@DateTime.Now.Year).</p>
+            <a href="/monthly-financial" class="btn btn-primary">Criar Controle Mensal</a>
+        </div>
+    }
 
     @if (errorMessage != null)
     {
@@ -205,9 +217,12 @@ else
 }
 
 @code {
-    private FinancialSummary? summary;
     private MonthlyFinancial? currentMonth;
     private List<Expense> recentExpenses = new();
+    private Dictionary<string, decimal> expensesByCategory = new();
+    private Dictionary<string, int> expensesCategoryCount = new();
+    private Dictionary<string, decimal> expensesByStatus = new();
+    private Dictionary<string, int> expensesStatusCount = new();
     private bool loading = true;
     private string? errorMessage;
 
@@ -222,58 +237,57 @@ else
         errorMessage = null;
         try
         {
-            Console.WriteLine("=== Iniciando carregamento do Dashboard ===");
-            Console.WriteLine($"Data/Hora atual: {DateTime.Now}");
-            Console.WriteLine($"Mês atual: {DateTime.Now.Month}");
-            Console.WriteLine($"Ano atual: {DateTime.Now.Year}");
-
-            // Carrega dados sempre do mês/ano atual
             var currentMonthValue = DateTime.Now.Month;
             var currentYearValue = DateTime.Now.Year;
 
-            // Busca controle mensal primeiro
-            Console.WriteLine("Buscando controle mensal...");
+            Console.WriteLine($"=== Dashboard - Carregando dados de {currentMonthValue}/{currentYearValue} ===");
+
+            // Busca controle mensal do mês atual
             currentMonth = await MonthlyFinancialService.GetCurrentMonthAsync();
             if (currentMonth != null)
             {
-                Console.WriteLine($"Controle mensal encontrado: {currentMonth.MonthName}/{currentMonth.Year}");
-                Console.WriteLine($"Money: {currentMonth.Money}, RV: {currentMonth.RV}");
-                Console.WriteLine($"SalaryTotal: {currentMonth.SalaryTotal}, Reserve: {currentMonth.Reserve}");
+                Console.WriteLine($"Controle Mensal: {currentMonth.MonthName}/{currentMonth.Year}");
+                Console.WriteLine($"  ExpensesTotal: {currentMonth.ExpensesTotal}");
+                Console.WriteLine($"  Balance: {currentMonth.Balance}");
+                Console.WriteLine($"  CanSpend: {currentMonth.CanSpend}");
             }
             else
             {
                 Console.WriteLine("Nenhum controle mensal encontrado");
             }
 
-            // Busca summary (que agora usa o controle mensal internamente)
-            Console.WriteLine("Buscando summary...");
-            summary = await SummaryService.GetFinancialSummaryAsync();
-            if (summary != null)
-            {
-                Console.WriteLine($"Summary recebido:");
-                Console.WriteLine($"  TotalExpenses: {summary.TotalExpenses}");
-                Console.WriteLine($"  Balance: {summary.Balance}");
-                Console.WriteLine($"  AvailableToSpend: {summary.AvailableToSpend}");
-                Console.WriteLine($"  TotalByCategory count: {summary.TotalByCategory?.Count ?? 0}");
-                Console.WriteLine($"  TotalByStatus count: {summary.TotalByStatus?.Count ?? 0}");
-            }
-            else
-            {
-                Console.WriteLine("Summary retornou null");
-            }
-
-            // Busca despesas do mês atual
-            Console.WriteLine($"Buscando despesas de {currentMonthValue}/{currentYearValue}...");
+            // Busca todas as despesas do mês atual
             recentExpenses = await ExpenseService.GetAllAsync(currentMonthValue, currentYearValue);
-            Console.WriteLine($"Total de despesas encontradas: {recentExpenses.Count}");
+            Console.WriteLine($"Total de despesas: {recentExpenses.Count}");
 
-            Console.WriteLine("=== Carregamento do Dashboard concluído ===");
+            // Calcula totais por categoria
+            expensesByCategory = recentExpenses
+                .GroupBy(e => e.Category ?? "Sem Categoria")
+                .ToDictionary(g => g.Key, g => g.Sum(e => e.Amount));
+
+            expensesCategoryCount = recentExpenses
+                .GroupBy(e => e.Category ?? "Sem Categoria")
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            Console.WriteLine($"Categorias encontradas: {expensesByCategory.Count}");
+
+            // Calcula totais por status
+            expensesByStatus = recentExpenses
+                .GroupBy(e => e.Status ?? "Sem Status")
+                .ToDictionary(g => g.Key, g => g.Sum(e => e.Amount));
+
+            expensesStatusCount = recentExpenses
+                .GroupBy(e => e.Status ?? "Sem Status")
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            Console.WriteLine($"Status encontrados: {expensesByStatus.Count}");
+            Console.WriteLine("=== Dashboard carregado com sucesso ===");
         }
         catch (Exception ex)
         {
             errorMessage = $"Erro ao carregar dados do dashboard: {ex.Message}";
-            Console.WriteLine($"ERRO no Dashboard: {ex.Message}");
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            Console.WriteLine($"ERRO: {ex.Message}");
+            Console.WriteLine($"Stack: {ex.StackTrace}");
         }
         finally
         {
