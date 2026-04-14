@@ -1,0 +1,377 @@
+@page "/creditcard/{CardId:int}/expenses"
+@using FinancialControlUI.Models
+@using FinancialControlUI.Services
+@inject CreditCardService CreditCardService
+@inject CategoryService CategoryService
+@inject NavigationManager Navigation
+
+<Shared.BackButton />
+
+<h3>?? Despesas do Cartão</h3>
+
+@if (loading)
+{
+    <p><em>Carregando...</em></p>
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Cartão: @cardName</h5>
+            <button class="btn btn-primary" @onclick="ShowCreateForm">? Nova Despesa</button>
+            <button class="btn btn-secondary" @onclick="ShowImportCsvForm">?? Importar CSV</button>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Filtros</h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="form-label">Mês</label>
+                    <InputNumber class="form-control" @bind-Value="filterMonth" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Ano</label>
+                    <InputNumber class="form-control" @bind-Value="filterYear" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Categoria</label>
+                    <InputText class="form-control" @bind-Value="filterCategory" />
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-secondary" @onclick="LoadExpenses">Filtrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (showForm)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">@(editingExpense != null ? "Editar Despesa" : "Nova Despesa")</h5>
+                <EditForm Model="expenseRequest" OnValidSubmit="SaveExpense">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Categoria</label>
+                            <InputSelect class="form-control" @bind-Value="expenseRequest.CategoryId">
+                                <option value="0">Selecione...</option>
+                                @foreach (var cat in categories)
+                                {
+                                    <option value="@cat.Id">@cat.Name</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Valor</label>
+                            <InputNumber class="form-control" @bind-Value="expenseRequest.Amount" />
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Descrição</label>
+                            <InputText class="form-control" @bind-Value="expenseRequest.Description" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Data da Compra</label>
+                            <InputDate class="form-control" @bind-Value="expenseRequest.PurchaseDate" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Mês</label>
+                            <InputNumber class="form-control" @bind-Value="expenseRequest.Month" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Ano</label>
+                            <InputNumber class="form-control" @bind-Value="expenseRequest.Year" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Parcelas (opcional)</label>
+                            <InputNumber class="form-control" @bind-Value="expenseRequest.Installments" />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success">Salvar</button>
+                    <button type="button" class="btn btn-secondary" @onclick="CancelForm">Cancelar</button>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    @if (showImportForm)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Importar Despesas via CSV</h5>
+                <div class="alert alert-info">
+                    <strong>Formato:</strong> CategoryId,Amount,Description,PurchaseDate,Month,Year,Installments
+                </div>
+                <div class="mb-3">
+                    <InputFile OnChange="HandleFileSelected" class="form-control" accept=".csv" />
+                </div>
+                <button class="btn btn-primary" @onclick="UploadCsv" disabled="@(selectedFile == null)">Importar</button>
+                <button class="btn btn-secondary" @onclick="CancelImport">Cancelar</button>
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success">@successMessage</div>
+    }
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Valor</th>
+                    <th>Parcelas</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var expense in expenses)
+                {
+                    <tr>
+                        <td>@expense.PurchaseDate.ToString("dd/MM/yyyy")</td>
+                        <td>@expense.Description</td>
+                        <td>@expense.CategoryName</td>
+                        <td>@expense.Amount.ToString("C")</td>
+                        <td>
+                            @if (expense.Installments.HasValue)
+                            {
+                                <span>@expense.CurrentInstallment/@expense.Installments</span>
+                            }
+                            else
+                            {
+                                <span>À vista</span>
+                            }
+                        </td>
+                        <td>
+                            @if (expense.IsPaid)
+                            {
+                                <span class="badge bg-success">Pago</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning">Pendente</span>
+                            }
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" @onclick="() => EditExpense(expense)">??</button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteExpense(expense.Id)">???</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    [Parameter] public int CardId { get; set; }
+
+    private List<CreditCardExpense> expenses = new();
+    private List<Category> categories = new();
+    private CreateCreditCardExpenseRequest expenseRequest = new();
+    private CreditCardExpense? editingExpense;
+    private bool loading = true;
+    private bool showForm = false;
+    private bool showImportForm = false;
+    private string? errorMessage;
+    private string? successMessage;
+    private string cardName = "";
+    private int? filterMonth;
+    private int? filterYear;
+    private string? filterCategory;
+    private IBrowserFile? selectedFile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCard();
+        await LoadCategories();
+        await LoadExpenses();
+    }
+
+    private async Task LoadCard()
+    {
+        try
+        {
+            var card = await CreditCardService.GetCardByIdAsync(CardId);
+            cardName = card?.Name ?? "Cartão não encontrado";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar cartão: {ex.Message}";
+        }
+    }
+
+    private async Task LoadCategories()
+    {
+        try
+        {
+            categories = await CategoryService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar categorias: {ex.Message}";
+        }
+    }
+
+    private async Task LoadExpenses()
+    {
+        loading = true;
+        errorMessage = null;
+        try
+        {
+            expenses = await CreditCardService.GetExpensesByCardAsync(CardId, filterMonth, filterYear, filterCategory);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar despesas: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void ShowCreateForm()
+    {
+        editingExpense = null;
+        expenseRequest = new CreateCreditCardExpenseRequest
+        {
+            PurchaseDate = DateTime.Now,
+            Month = DateTime.Now.Month,
+            Year = DateTime.Now.Year
+        };
+        showForm = true;
+        showImportForm = false;
+    }
+
+    private void ShowImportCsvForm()
+    {
+        showImportForm = true;
+        showForm = false;
+    }
+
+    private void EditExpense(CreditCardExpense expense)
+    {
+        editingExpense = expense;
+        expenseRequest = new CreateCreditCardExpenseRequest
+        {
+            CategoryId = expense.CategoryId,
+            Amount = expense.Amount,
+            Description = expense.Description,
+            PurchaseDate = expense.PurchaseDate,
+            Month = expense.Month,
+            Year = expense.Year,
+            Installments = expense.Installments
+        };
+        showForm = true;
+    }
+
+    private async Task SaveExpense()
+    {
+        errorMessage = null;
+        successMessage = null;
+        try
+        {
+            if (editingExpense != null)
+            {
+                var updateRequest = new UpdateCreditCardExpenseRequest
+                {
+                    CategoryId = expenseRequest.CategoryId,
+                    Amount = expenseRequest.Amount,
+                    Description = expenseRequest.Description,
+                    PurchaseDate = expenseRequest.PurchaseDate
+                };
+                await CreditCardService.UpdateExpenseAsync(editingExpense.Id, updateRequest);
+                successMessage = "Despesa atualizada com sucesso!";
+            }
+            else
+            {
+                await CreditCardService.CreateExpenseAsync(CardId, expenseRequest);
+                successMessage = "Despesa criada com sucesso!";
+            }
+
+            showForm = false;
+            await LoadExpenses();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao salvar: {ex.Message}";
+        }
+    }
+
+    private async Task DeleteExpense(int expenseId)
+    {
+        if (confirm($"Deseja realmente excluir esta despesa?"))
+        {
+            try
+            {
+                await CreditCardService.DeleteExpenseAsync(expenseId);
+                successMessage = "Despesa excluída com sucesso!";
+                await LoadExpenses();
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Erro ao excluir: {ex.Message}";
+            }
+        }
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+        editingExpense = null;
+    }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+    }
+
+    private async Task UploadCsv()
+    {
+        if (selectedFile == null) return;
+
+        try
+        {
+            var maxFileSize = 5 * 1024 * 1024;
+            using var stream = selectedFile.OpenReadStream(maxFileSize);
+            var result = await CreditCardService.ImportCsvAsync(CardId, stream, selectedFile.Name);
+
+            successMessage = $"Importação concluída! {result?.ImportedRecords} despesas importadas.";
+            if (result?.FailedRecords > 0)
+            {
+                errorMessage = $"{result.FailedRecords} registros com erro.";
+            }
+
+            showImportForm = false;
+            await LoadExpenses();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao importar: {ex.Message}";
+        }
+    }
+
+    private void CancelImport()
+    {
+        showImportForm = false;
+        selectedFile = null;
+    }
+
+    private bool confirm(string message)
+    {
+        // Simplificação - em produção usar JSRuntime
+        return true;
+    }
+}

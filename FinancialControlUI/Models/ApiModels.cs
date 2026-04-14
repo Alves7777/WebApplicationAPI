@@ -101,10 +101,16 @@ public class MonthlyFinancial
     public int Month { get; set; }
     public string MonthName { get; set; }
     public decimal Money { get; set; }
+    public decimal RV { get; set; }
+    public decimal Debit { get; set; }
+    public decimal Others { get; set; }
+    public decimal Reserve { get; set; }
     public decimal SalaryTotal { get; set; }
     public decimal ExpensesTotal { get; set; }
     public decimal Balance { get; set; }
     public decimal CanSpend { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }
 
 public class CreateMonthlyFinancialRequest
@@ -112,11 +118,21 @@ public class CreateMonthlyFinancialRequest
     public int Year { get; set; }
     public int Month { get; set; }
     public decimal Money { get; set; }
+    public decimal RV { get; set; }
+    public decimal Debit { get; set; }
+    public decimal Others { get; set; }
+    public decimal Reserve { get; set; }
 }
 
 public class UpdateMonthlyFinancialRequest
 {
-    public decimal? Money { get; set; }
+    public int Year { get; set; }
+    public int Month { get; set; }
+    public decimal Money { get; set; }
+    public decimal RV { get; set; }
+    public decimal Debit { get; set; }
+    public decimal Others { get; set; }
+    public decimal Reserve { get; set; }
 }
 
 public class Category
@@ -207,4 +223,106 @@ public class FinancialSummary
     public decimal AvailableToSpend { get; set; }
     public Dictionary<string, decimal> TotalByCategory { get; set; }
     public Dictionary<string, decimal> TotalByStatus { get; set; }
+}
+
+public class ImportCsvResponse
+{
+    public int TotalRecords { get; set; }
+    public int SuccessCount { get; set; }
+    public int ErrorCount { get; set; }
+    public List<string> Errors { get; set; } = new();
+}
+
+public class CreditCardExpense
+{
+    public int Id { get; set; }
+    public int CreditCardId { get; set; }
+    public string CreditCardName { get; set; }
+    public int CategoryId { get; set; }
+    public string CategoryName { get; set; }
+    public decimal Amount { get; set; }
+    public string Description { get; set; }
+    public DateTime PurchaseDate { get; set; }
+    public int Month { get; set; }
+    public int Year { get; set; }
+    public int? Installments { get; set; }
+    public int? CurrentInstallment { get; set; }
+    public bool IsPaid { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CreateCreditCardExpenseRequest
+{
+    public int CategoryId { get; set; }
+    public decimal Amount { get; set; }
+    public string Description { get; set; }
+    public DateTime PurchaseDate { get; set; }
+    public int Month { get; set; }
+    public int Year { get; set; }
+    public int? Installments { get; set; }
+}
+
+public class UpdateCreditCardExpenseRequest
+{
+    public int? CategoryId { get; set; }
+    public decimal? Amount { get; set; }
+    public string? Description { get; set; }
+    public DateTime? PurchaseDate { get; set; }
+    public bool? IsPaid { get; set; }
+}
+
+public class CreditCardStatement
+{
+    public string CardName { get; set; }
+    public string Brand { get; set; }
+    public int Month { get; set; }
+    public int Year { get; set; }
+    public DateTime? BillingPeriodStart { get; set; }
+    public DateTime? BillingPeriodEnd { get; set; }
+    public decimal TotalAmount { get; set; }
+    public int TotalTransactions { get; set; }
+    public decimal CardLimit { get; set; }
+    public decimal AvailableLimit { get; set; }
+    public decimal UsagePercentage { get; set; }
+    public List<CreditCardExpense> Expenses { get; set; } = new();
+    public Dictionary<string, decimal> TotalByCategory { get; set; } = new();
+}
+
+public class CategoryAnalysis
+{
+    public string CategoryName { get; set; }
+    public decimal TotalAmount { get; set; }
+    public int ExpenseCount { get; set; }
+    public decimal Percentage { get; set; }
+}
+
+public class CsvImportResult
+{
+    public int TotalRecords { get; set; }
+    public int ImportedRecords { get; set; }
+    public int FailedRecords { get; set; }
+    public List<string> Errors { get; set; } = new();
+}
+
+public class InstallmentPurchase
+{
+    public int Id { get; set; }
+    public int CreditCardId { get; set; }
+    public string CreditCardName { get; set; }
+    public string Description { get; set; }
+    public decimal TotalAmount { get; set; }
+    public int Installments { get; set; }
+    public decimal InstallmentAmount { get; set; }
+    public DateTime PurchaseDate { get; set; }
+    public int CategoryId { get; set; }
+    public string CategoryName { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public class ConfirmPurchaseRequest
+{
+    public decimal Amount { get; set; }
+    public int Installments { get; set; }
+    public string Description { get; set; }
+    public int CategoryId { get; set; }
 }

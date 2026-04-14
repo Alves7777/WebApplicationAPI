@@ -1,0 +1,181 @@
+@page "/creditcard/{CardId:int}/statement"
+@using FinancialControlUI.Models
+@using FinancialControlUI.Services
+@using StatementModel = FinancialControlUI.Models.CreditCardStatement
+@inject CreditCardService CreditCardService
+
+<Shared.BackButton />
+
+<h3>?? Extrato do Cartão</h3>
+
+@if (loading)
+{
+    <p><em>Carregando...</em></p>
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">@cardName</h5>
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Mês</label>
+                    <InputNumber class="form-control" @bind-Value="selectedMonth" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Ano</label>
+                    <InputNumber class="form-control" @bind-Value="selectedYear" />
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button class="btn btn-primary" @onclick="LoadStatement">Buscar Extrato</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (statement != null)
+    {
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card text-white bg-primary">
+                    <div class="card-body">
+                        <h5 class="card-title">Total do Período</h5>
+                        <h2>@statement.TotalAmount.ToString("C")</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h6>Período</h6>
+                        <p>@statement.Month/@statement.Year</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h6>Total de Despesas</h6>
+                        <p>@statement.TotalTransactions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="text-white">Despesas por Categoria</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Categoria</th>
+                                        <th class="text-end">Valor</th>
+                                        <th class="text-end">%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in statement.TotalByCategory.OrderByDescending(x => x.Value))
+                                    {
+                                        <tr>
+                                            <td>@item.Key</td>
+                                            <td class="text-end">@item.Value.ToString("C")</td>
+                                            <td class="text-end">@((item.Value / statement.TotalAmount * 100).ToString("F1"))%</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="text-white">Todas as Despesas</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Descrição</th>
+                                        <th class="text-end">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var expense in statement.Expenses.OrderBy(e => e.PurchaseDate))
+                                    {
+                                        <tr>
+                                            <td>@expense.PurchaseDate.ToString("dd/MM")</td>
+                                            <td>@expense.Description</td>
+                                            <td class="text-end">@expense.Amount.ToString("C")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+}
+
+@code {
+    [Parameter] public int CardId { get; set; }
+
+    private StatementModel? statement;
+    private string cardName = "";
+    private bool loading = true;
+    private string? errorMessage;
+    private int selectedMonth = DateTime.Now.Month;
+    private int selectedYear = DateTime.Now.Year;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCard();
+        await LoadStatement();
+    }
+
+    private async Task LoadCard()
+    {
+        try
+        {
+            var card = await CreditCardService.GetCardByIdAsync(CardId);
+            cardName = card?.Name ?? "Cartão não encontrado";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar cartão: {ex.Message}";
+        }
+    }
+
+    private async Task LoadStatement()
+    {
+        loading = true;
+        errorMessage = null;
+        try
+        {
+            statement = await CreditCardService.GetStatementAsync(CardId, selectedMonth, selectedYear);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar extrato: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+}

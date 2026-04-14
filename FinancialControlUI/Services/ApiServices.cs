@@ -51,10 +51,95 @@ public class CreditCardService
         return result?.Data;
     }
 
-    public async Task<bool> ConfirmPurchaseAsync(int cardId, SimulatePurchaseRequest request)
+    public async Task<bool> ConfirmPurchaseAsync(int cardId, ConfirmPurchaseRequest request)
     {
         var response = await _http.PostAsJsonAsync($"creditcard/{cardId}/confirm-purchase", request);
         return response.IsSuccessStatusCode;
+    }
+
+    // Gerenciamento de despesas do cartão
+    public async Task<List<CreditCardExpense>> GetExpensesByCardAsync(int cardId, int? month = null, int? year = null, string? category = null)
+    {
+        var queryParams = new List<string>();
+        if (month.HasValue) queryParams.Add($"month={month}");
+        if (year.HasValue) queryParams.Add($"year={year}");
+        if (!string.IsNullOrEmpty(category)) queryParams.Add($"category={category}");
+
+        var url = $"creditcard/{cardId}/expenses" + (queryParams.Any() ? "?" + string.Join("&", queryParams) : "");
+        var response = await _http.GetFromJsonAsync<ApiResponse<List<CreditCardExpense>>>(url);
+        return response?.Data ?? new List<CreditCardExpense>();
+    }
+
+    public async Task<CreditCardExpense?> GetExpenseByIdAsync(int expenseId)
+    {
+        var response = await _http.GetFromJsonAsync<ApiResponse<CreditCardExpense>>($"creditcard/expenses/{expenseId}");
+        return response?.Data;
+    }
+
+    public async Task<CreditCardExpense?> CreateExpenseAsync(int cardId, CreateCreditCardExpenseRequest request)
+    {
+        var response = await _http.PostAsJsonAsync($"creditcard/{cardId}/expenses", request);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<CreditCardExpense>>();
+        return result?.Data;
+    }
+
+    public async Task<CreditCardExpense?> UpdateExpenseAsync(int expenseId, UpdateCreditCardExpenseRequest request)
+    {
+        var response = await _http.PutAsJsonAsync($"creditcard/expenses/{expenseId}", request);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<CreditCardExpense>>();
+        return result?.Data;
+    }
+
+    public async Task<bool> DeleteExpenseAsync(int expenseId)
+    {
+        var response = await _http.DeleteAsync($"creditcard/expenses/{expenseId}");
+        return response.IsSuccessStatusCode;
+    }
+
+    // Import CSV para cartão
+    public async Task<CsvImportResult?> ImportCsvAsync(int cardId, Stream fileStream, string fileName)
+    {
+        using var content = new MultipartFormDataContent();
+        var fileContent = new StreamContent(fileStream);
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/csv");
+        content.Add(fileContent, "file", fileName);
+
+        var response = await _http.PostAsync($"creditcard/{cardId}/import-csv", content);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Erro ao importar CSV: {errorContent}");
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<CsvImportResult>>();
+        return result?.Data;
+    }
+
+    // Extrato do cartão
+    public async Task<CreditCardStatement?> GetStatementAsync(int cardId, int month, int year)
+    {
+        var response = await _http.GetFromJsonAsync<ApiResponse<CreditCardStatement>>($"creditcard/{cardId}/statement?month={month}&year={year}");
+        return response?.Data;
+    }
+
+    public async Task<CreditCardStatement?> GetStatementByPeriodAsync(int cardId, DateTime startDate, DateTime endDate)
+    {
+        var response = await _http.GetFromJsonAsync<ApiResponse<CreditCardStatement>>($"creditcard/{cardId}/statement-period?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}");
+        return response?.Data;
+    }
+
+    // Análise por categoria
+    public async Task<List<CategoryAnalysis>> GetCategoryAnalysisAsync(int cardId, int month, int year)
+    {
+        var response = await _http.GetFromJsonAsync<ApiResponse<List<CategoryAnalysis>>>($"creditcard/{cardId}/by-category?month={month}&year={year}");
+        return response?.Data ?? new List<CategoryAnalysis>();
+    }
+
+    // Compras parceladas
+    public async Task<List<InstallmentPurchase>> GetInstallmentPurchasesAsync(int cardId)
+    {
+        var response = await _http.GetFromJsonAsync<ApiResponse<List<InstallmentPurchase>>>($"creditcard/{cardId}/installment-purchases");
+        return response?.Data ?? new List<InstallmentPurchase>();
     }
 }
 
@@ -216,6 +301,24 @@ public class ExpenseService
     {
         var response = await _http.DeleteAsync($"Expense/{id}");
         return response.IsSuccessStatusCode;
+    }
+
+    public async Task<ImportCsvResponse?> ImportCsvAsync(Stream fileStream, string fileName)
+    {
+        using var content = new MultipartFormDataContent();
+        var fileContent = new StreamContent(fileStream);
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/csv");
+        content.Add(fileContent, "file", fileName);
+
+        var response = await _http.PostAsync("Expense/import-csv", content);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Erro ao importar CSV: {errorContent}");
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<ImportCsvResponse>>();
+        return result?.Data;
     }
 }
 

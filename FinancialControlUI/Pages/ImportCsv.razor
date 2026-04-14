@@ -1,0 +1,156 @@
+﻿@page "/import-csv"
+@using FinancialControlUI.Models
+@using FinancialControlUI.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject ExpenseService ExpenseService
+@inject IJSRuntime JS
+
+<Shared.BackButton />
+
+<h3>📥 Importar Despesas via CSV</h3>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Formato do Arquivo CSV</h5>
+        <p>O arquivo CSV deve conter as seguintes colunas (separadas por vírgula ou ponto e vírgula):</p>
+        <ul>
+            <li><strong>CategoryId</strong> - ID da categoria (número)</li>
+            <li><strong>Amount</strong> - Valor da despesa (decimal)</li>
+            <li><strong>Description</strong> - Descrição da despesa</li>
+            <li><strong>ExpenseDate</strong> - Data da despesa (formato: dd/MM/yyyy ou yyyy-MM-dd)</li>
+            <li><strong>Month</strong> - Mês (1-12)</li>
+            <li><strong>Year</strong> - Ano</li>
+            <li><strong>Status</strong> - Status (ex: Pago, Pendente)</li>
+            <li><strong>PaymentMethod</strong> - Método de pagamento</li>
+        </ul>
+
+        <div class="alert alert-info">
+            <strong>Exemplo:</strong><br />
+            CategoryId,Amount,Description,ExpenseDate,Month,Year,Status,PaymentMethod<br />
+            1,150.50,Supermercado,15/01/2024,1,2024,Pago,Dinheiro<br />
+            2,85.00,Combustível,20/01/2024,1,2024,Pago,Cartão
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Enviar Arquivo</h5>
+
+        @if (uploading)
+        {
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Enviando...</span>
+                </div>
+                <p class="mt-2">Processando arquivo...</p>
+            </div>
+        }
+        else if (importResult != null)
+        {
+            <div class="alert @(importResult.ErrorCount > 0 ? "alert-warning" : "alert-success")">
+                <h6>Resultado da Importação</h6>
+                <ul class="mb-0">
+                    <li>Total de registros: <strong>@importResult.TotalRecords</strong></li>
+                    <li>Importados com sucesso: <strong class="text-success">@importResult.SuccessCount</strong></li>
+                    <li>Erros: <strong class="text-danger">@importResult.ErrorCount</strong></li>
+                </ul>
+
+                @if (importResult.Errors.Any())
+                {
+                    <hr />
+                    <h6>Erros encontrados:</h6>
+                    <ul>
+                        @foreach (var error in importResult.Errors)
+                        {
+                            <li class="text-danger">@error</li>
+                        }
+                    </ul>
+                }
+            </div>
+            <button class="btn btn-primary" @onclick="ResetForm">Nova Importação</button>
+        }
+        else
+        {
+            <div class="mb-3">
+                <InputFile OnChange="HandleFileSelected" class="form-control" accept=".csv" />
+                @if (!string.IsNullOrEmpty(selectedFileName))
+                {
+                    <small class="text-muted">Arquivo selecionado: @selectedFileName</small>
+                }
+            </div>
+
+            <button class="btn btn-primary" @onclick="UploadFile" disabled="@(selectedFile == null)">
+                <span class="oi oi-cloud-upload"></span> Importar
+            </button>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger mt-3">
+                @errorMessage
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private IBrowserFile? selectedFile;
+    private string? selectedFileName;
+    private bool uploading = false;
+    private string? errorMessage;
+    private ImportCsvResponse? importResult;
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        selectedFileName = e.File.Name;
+        errorMessage = null;
+        importResult = null;
+    }
+
+    private async Task UploadFile()
+    {
+        if (selectedFile == null)
+            return;
+
+        uploading = true;
+        errorMessage = null;
+        importResult = null;
+
+        try
+        {
+            var maxFileSize = 5 * 1024 * 1024; // 5 MB
+
+            if (selectedFile.Size > maxFileSize)
+            {
+                errorMessage = "O arquivo é muito grande. Tamanho máximo: 5 MB";
+                return;
+            }
+
+            using var stream = selectedFile.OpenReadStream(maxFileSize);
+            importResult = await ExpenseService.ImportCsvAsync(stream, selectedFile.Name);
+
+            if (importResult != null && importResult.SuccessCount > 0)
+            {
+                await JS.InvokeVoidAsync("alert", $"Importação concluída! {importResult.SuccessCount} despesas importadas.");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao importar: {ex.Message}";
+        }
+        finally
+        {
+            uploading = false;
+        }
+    }
+
+    private void ResetForm()
+    {
+        selectedFile = null;
+        selectedFileName = null;
+        importResult = null;
+        errorMessage = null;
+    }
+}

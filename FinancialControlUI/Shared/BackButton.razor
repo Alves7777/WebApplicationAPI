@@ -1,13 +1,22 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-<button class="btn btn-back mb-3" @onclick="GoBack">
-    <span class="back-arrow">&#8592;</span> Voltar
+<button class="btn btn-back mb-3" @onclick="GoBack" type="button" aria-label="Voltar">
+    <span class="back-arrow">?</span> Voltar
 </button>
 
 @code {
     private async Task GoBack()
     {
-        await JS.InvokeVoidAsync("history.back");
+        try
+        {
+            // Tenta usar history.back do navegador
+            await JS.InvokeVoidAsync("eval", "window.history.back()");
+        }
+        catch (Exception)
+        {
+            // Fallback: volta para a home se history.back falhar
+            Navigation.NavigateTo("/");
+        }
     }
 }

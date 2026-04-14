@@ -133,5 +133,87 @@ namespace WebApplicationAPI.Controllers
 
             return Ok(report);
         }
+
+        [HttpPost("import-csv")]
+        public async Task<IActionResult> ImportCsv(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(ApiResponse<object>.Fail("Nenhum arquivo foi enviado."));
+            }
+
+            if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(ApiResponse<object>.Fail("O arquivo deve ser um CSV."));
+            }
+
+            var importResult = new ImportCsvResult
+            {
+                TotalRecords = 0,
+                SuccessCount = 0,
+                ErrorCount = 0,
+                Errors = new List<string>()
+            };
+
+            try
+            {
+                using var reader = new StreamReader(file.OpenReadStream());
+                var line = await reader.ReadLineAsync(); // Skip header
+                var lineNumber = 1;
+
+                while ((line = await reader.ReadLineAsync()) != null)
+                {
+                    lineNumber++;
+                    importResult.TotalRecords++;
+
+                    try
+                    {
+                        var parts = line.Split(new[] { ',', ';' }, StringSplitOptions.None);
+
+                        if (parts.Length < 8)
+                        {
+                            importResult.Errors.Add($"Linha {lineNumber}: Formato inválido (menos de 8 colunas)");
+                            importResult.ErrorCount++;
+                            continue;
+                        }
+
+                        var request = new CreateExpenseRequest
+                        {
+                            CategoryId = int.Parse(parts[0].Trim()),
+                            Amount = decimal.Parse(parts[1].Trim().Replace(".", ",")),
+                            Description = parts[2].Trim(),
+                            ExpenseDate = DateTime.Parse(parts[3].Trim()),
+                            Month = int.Parse(parts[4].Trim()),
+                            Year = int.Parse(parts[5].Trim()),
+                            Status = parts[6].Trim(),
+                            PaymentMethod = parts[7].Trim()
+                        };
+
+                        await _mediator.Send(new CreateExpenseCommand(request));
+                        importResult.SuccessCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        importResult.Errors.Add($"Linha {lineNumber}: {ex.Message}");
+                        importResult.ErrorCount++;
+                    }
+                }
+
+                return Ok(ApiResponse<ImportCsvResult>.Success(importResult, 
+                    $"Importação concluída. {importResult.SuccessCount} registros importados com sucesso."));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResponse<object>.Fail($"Erro ao processar arquivo: {ex.Message}"));
+            }
+        }
+    }
+
+    public class ImportCsvResult
+    {
+        public int TotalRecords { get; set; }
+        public int SuccessCount { get; set; }
+        public int ErrorCount { get; set; }
+        public List<string> Errors { get; set; }
     }
 }

@@ -76,7 +76,12 @@ else
                             <strong>Vencimento:</strong> Dia @card.DueDay<br />
                             <strong>Status:</strong> @(card.IsActive ? "Ativo" : "Inativo")
                         </p>
-                        <button class="btn btn-sm btn-warning" @onclick="() => EditCard(card)">Editar</button>
+                        <div class="btn-group-vertical w-100 mb-2">
+                            <a href="/creditcard/@card.Id/expenses" class="btn btn-sm btn-info">Despesas</a>
+                            <a href="/creditcard/@card.Id/statement" class="btn btn-sm btn-success">Extrato</a>
+                            <a href="/creditcard/@card.Id/installments" class="btn btn-sm btn-primary">Parcelamentos</a>
+                        </div>
+                        <button class="btn btn-sm btn-warning me-1" @onclick="() => EditCard(card)">Editar</button>
                         <button class="btn btn-sm btn-danger" @onclick="() => DeleteCard(card.Id)">Deletar</button>
                     </div>
                 </div>
