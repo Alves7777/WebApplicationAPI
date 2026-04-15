@@ -104,6 +104,20 @@ namespace WebApplicationAPI.Repositories
             return result.ToList();
         }
 
+        public async Task<List<MonthlyFinancialControl>> GetByUserIdAsync(int userId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            // ? Busca apenas do usuário (ou tudo se for Admin - SP decide)
+            var result = await connection.QueryAsync<MonthlyFinancialControl>(
+                "sp_GetMonthlyFinancialByUserId",
+                new { UserId = userId },
+                commandType: CommandType.StoredProcedure
+            );
+
+            return result.ToList();
+        }
+
         public async Task<MonthlyFinancialControl> GetByYearAndMonthAsync(int year, int month)
         {
             using var connection = new SqlConnection(_connectionString);

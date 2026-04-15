@@ -31,10 +31,11 @@ namespace WebApplicationAPI.Services
             _expenseRepository = expenseRepository;
         }
 
-        public async Task<CreditCardResponse> CreateAsync(CreateCreditCardRequest request)
+        public async Task<CreditCardResponse> CreateAsync(int userId, CreateCreditCardRequest request)
         {
             var creditCard = new CreditCard
             {
+                UserId = userId, // ? Vincula ao usuário logado
                 Name = request.Name,
                 Brand = request.Brand,
                 CardLimit = request.CardLimit,
@@ -51,12 +52,18 @@ namespace WebApplicationAPI.Services
             return MapToResponse(creditCard);
         }
 
-        public async Task<CreditCardResponse> UpdateAsync(int id, UpdateCreditCardRequest request)
+        public async Task<CreditCardResponse> UpdateAsync(int id, int userId, UpdateCreditCardRequest request)
         {
             var existing = await _repository.GetByIdAsync(id);
             if (existing == null)
             {
                 throw new InvalidOperationException("Cartão não encontrado");
+            }
+
+            // ? Verificar se o cartão pertence ao usuário
+            if (existing.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para atualizar este cartão");
             }
 
             existing.Name = request.Name;
@@ -71,20 +78,45 @@ namespace WebApplicationAPI.Services
             return MapToResponse(existing);
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(int id, int userId)
         {
+            var existing = await _repository.GetByIdAsync(id);
+            if (existing == null)
+            {
+                return false;
+            }
+
+            // ? Verificar se o cartão pertence ao usuário
+            if (existing.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para deletar este cartão");
+            }
+
             return await _repository.DeleteAsync(id);
         }
 
-        public async Task<CreditCardResponse> GetByIdAsync(int id)
+        public async Task<CreditCardResponse> GetByIdAsync(int id, int userId)
         {
             var creditCard = await _repository.GetByIdAsync(id);
-            return creditCard != null ? MapToResponse(creditCard) : null;
+
+            if (creditCard == null)
+            {
+                return null;
+            }
+
+            // ? Verificar se o cartão pertence ao usuário
+            if (creditCard.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para acessar este cartão");
+            }
+
+            return MapToResponse(creditCard);
         }
 
-        public async Task<List<CreditCardResponse>> GetAllAsync()
+        public async Task<List<CreditCardResponse>> GetAllAsync(int userId)
         {
-            var creditCards = await _repository.GetAllAsync();
+            // ? Buscar apenas cartões do usuário logado
+            var creditCards = await _repository.GetByUserIdAsync(userId);
             return creditCards.Select(MapToResponse).ToList();
         }
 

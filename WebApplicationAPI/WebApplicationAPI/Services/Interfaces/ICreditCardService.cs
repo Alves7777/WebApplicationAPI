@@ -8,11 +8,11 @@ namespace WebApplicationAPI.Services.Interfaces
 {
     public interface ICreditCardService
     {
-        Task<CreditCardResponse> CreateAsync(CreateCreditCardRequest request);
-        Task<CreditCardResponse> UpdateAsync(int id, UpdateCreditCardRequest request);
-        Task<bool> DeleteAsync(int id);
-        Task<CreditCardResponse> GetByIdAsync(int id);
-        Task<List<CreditCardResponse>> GetAllAsync();
+        Task<CreditCardResponse> CreateAsync(int userId, CreateCreditCardRequest request);
+        Task<CreditCardResponse> UpdateAsync(int id, int userId, UpdateCreditCardRequest request);
+        Task<bool> DeleteAsync(int id, int userId);
+        Task<CreditCardResponse> GetByIdAsync(int id, int userId);
+        Task<List<CreditCardResponse>> GetAllAsync(int userId);
         Task<CreditCardExpenseResponse> CreateExpenseAsync(int creditCardId, CreateCreditCardExpenseRequest request);
         Task<CreditCardExpenseResponse> UpdateExpenseAsync(int expenseId, UpdateCreditCardExpenseRequest request);
         Task<bool> DeleteExpenseAsync(int expenseId);

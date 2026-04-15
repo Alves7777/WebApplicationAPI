@@ -16,6 +16,8 @@ namespace WebApplicationAPI.Repositories.Interfaces
 
         Task<List<MonthlyFinancialControl>> GetAllAsync();
 
+        Task<List<MonthlyFinancialControl>> GetByUserIdAsync(int userId); // ? Novo método
+
         Task<MonthlyFinancialControl> GetByYearAndMonthAsync(int year, int month);
 
         Task<decimal> GetExpensesTotalByYearAndMonthAsync(int year, int month);

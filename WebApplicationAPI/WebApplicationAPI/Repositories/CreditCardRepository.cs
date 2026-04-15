@@ -104,6 +104,19 @@ namespace WebApplicationAPI.Repositories
             return result.ToList();
         }
 
+        public async Task<List<CreditCard>> GetByUserIdAsync(int userId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            var result = await connection.QueryAsync<CreditCard>(
+                "sp_GetCreditCardsByUserId",
+                new { UserId = userId },
+                commandType: CommandType.StoredProcedure
+            );
+
+            return result.ToList();
+        }
+
         // ===== CREDIT CARD EXPENSE CRUD =====
 
         public async Task<int> CreateExpenseAsync(CreditCardExpense expense)

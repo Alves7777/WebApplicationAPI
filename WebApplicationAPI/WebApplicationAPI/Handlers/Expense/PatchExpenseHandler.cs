@@ -1,25 +1,37 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using WebApplicationAPI.Commands.Expense;
 using WebApplicationAPI.DTO;
 using WebApplicationAPI.Repositories.Interfaces;
+using WebApplicationAPI.Helpers;
 
 namespace WebApplicationAPI.Handlers.Expense
 {
     public class PatchExpenseHandler : IRequestHandler<PatchExpenseCommand, ExpenseResponse>
     {
         private readonly IExpenseRepository _repository;
+        private readonly UserContext _userContext;
 
-        public PatchExpenseHandler(IExpenseRepository repository)
+        public PatchExpenseHandler(IExpenseRepository repository, UserContext userContext)
         {
             _repository = repository;
+            _userContext = userContext;
         }
 
         public async Task<ExpenseResponse> Handle(PatchExpenseCommand request, CancellationToken cancellationToken)
         {
+            var userId = _userContext.GetCurrentUserId(); // ? Pega do token JWT
+
             var existing = await _repository.GetExpenseByIdAsync(request.Id);
             if (existing == null) return null;
+
+            // ? Validar ownership - apenas dono pode fazer patch
+            if (existing.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para atualizar esta despesa");
+            }
 
             var patch = request.Request;
 

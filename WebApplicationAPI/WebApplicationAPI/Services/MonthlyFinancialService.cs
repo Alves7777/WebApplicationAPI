@@ -20,16 +20,17 @@ namespace WebApplicationAPI.Services
             _repository = repository;
         }
 
-        public async Task<MonthlyFinancialResponse> CreateAsync(CreateMonthlyFinancialRequest request)
+        public async Task<MonthlyFinancialResponse> CreateAsync(int userId, CreateMonthlyFinancialRequest request)
         {
             var existing = await _repository.GetByYearAndMonthAsync(request.Year, request.Month);
-            if (existing != null)
+            if (existing != null && existing.UserId == userId)
             {
                 throw new InvalidOperationException($"Já existe um registro para {request.Month}/{request.Year}");
             }
 
             var entity = new MonthlyFinancialControl
             {
+                UserId = userId, // ? Vincula ao usuário logado
                 Year = request.Year,
                 Month = request.Month,
                 Money = request.Money,
@@ -47,15 +48,22 @@ namespace WebApplicationAPI.Services
             return await MapToResponse(entity);
         }
 
-        public async Task<MonthlyFinancialResponse> UpdateAsync(int id, UpdateMonthlyFinancialRequest request)
+        public async Task<MonthlyFinancialResponse> UpdateAsync(int id, int userId, UpdateMonthlyFinancialRequest request)
         {
             var existing = await _repository.GetByIdAsync(id);
             if (existing == null)
             {
                 throw new InvalidOperationException("Registro não encontrado");
             }
+
+            // ? Validar ownership
+            if (existing.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para atualizar este registro");
+            }
+
             var duplicate = await _repository.GetByYearAndMonthAsync(request.Year, request.Month);
-            if (duplicate != null && duplicate.Id != id)
+            if (duplicate != null && duplicate.Id != id && duplicate.UserId == userId)
             {
                 throw new InvalidOperationException($"Já existe outro registro para {request.Month}/{request.Year}");
             }
@@ -74,7 +82,7 @@ namespace WebApplicationAPI.Services
             return await MapToResponse(existing);
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(int id, int userId)
         {
             var existing = await _repository.GetByIdAsync(id);
             if (existing == null)
@@ -82,10 +90,16 @@ namespace WebApplicationAPI.Services
                 return false;
             }
 
+            // ? Validar ownership
+            if (existing.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para deletar este registro");
+            }
+
             return await _repository.DeleteAsync(id);
         }
 
-        public async Task<MonthlyFinancialResponse> GetByIdAsync(int id)
+        public async Task<MonthlyFinancialResponse> GetByIdAsync(int id, int userId)
         {
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null)
@@ -93,12 +107,19 @@ namespace WebApplicationAPI.Services
                 return null;
             }
 
+            // ? Validar ownership
+            if (entity.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para acessar este registro");
+            }
+
             return await MapToResponse(entity);
         }
 
-        public async Task<List<MonthlyFinancialResponse>> GetAllAsync()
+        public async Task<List<MonthlyFinancialResponse>> GetAllAsync(int userId)
         {
-            var entities = await _repository.GetAllAsync();
+            // ? Busca apenas do usuário logado
+            var entities = await _repository.GetByUserIdAsync(userId);
             var responses = new List<MonthlyFinancialResponse>();
 
             foreach (var entity in entities)
@@ -109,7 +130,7 @@ namespace WebApplicationAPI.Services
             return responses.OrderByDescending(x => x.Year).ThenByDescending(x => x.Month).ToList();
         }
 
-        public async Task<MonthlyFinancialResponse> GetByYearAndMonthAsync(int year, int month)
+        public async Task<MonthlyFinancialResponse> GetByYearAndMonthAsync(int userId, int year, int month)
         {
             var entity = await _repository.GetByYearAndMonthAsync(year, month);
             if (entity == null)
@@ -117,12 +138,19 @@ namespace WebApplicationAPI.Services
                 return null;
             }
 
+            // ? Validar ownership
+            if (entity.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para acessar este registro");
+            }
+
             return await MapToResponse(entity);
         }
 
-        public async Task<List<MonthlyFinancialResponse>> GetByYearAsync(int year)
+        public async Task<List<MonthlyFinancialResponse>> GetByYearAsync(int userId, int year)
         {
-            var entities = await _repository.GetAllAsync();
+            // ? Busca apenas do usuário logado
+            var entities = await _repository.GetByUserIdAsync(userId);
             var filtered = entities.Where(x => x.Year == year).ToList();
             var responses = new List<MonthlyFinancialResponse>();
 

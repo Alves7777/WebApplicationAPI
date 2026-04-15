@@ -13,6 +13,7 @@ namespace WebApplicationAPI.Repositories.Interfaces
         Task<bool> DeleteAsync(int id);
         Task<CreditCard> GetByIdAsync(int id);
         Task<List<CreditCard>> GetAllAsync();
+        Task<List<CreditCard>> GetByUserIdAsync(int userId); // ? Novo método
 
         Task<int> CreateExpenseAsync(CreditCardExpense expense);
         Task<CreditCardExpense> UpdateExpenseAsync(CreditCardExpense expense);

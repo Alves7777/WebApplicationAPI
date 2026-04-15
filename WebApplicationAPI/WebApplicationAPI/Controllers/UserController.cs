@@ -1,11 +1,15 @@
-﻿using WebApplicationAPI.DTO;
-using WebApplicationAPI.Services.Interfaces;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using WebApplicationAPI.DTO;
+using WebApplicationAPI.Services.Interfaces;
+using WebApplicationAPI.Extensions;
 
 namespace WebApplicationAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -19,7 +23,8 @@ namespace WebApplicationAPI.Controllers
         [ProducesResponseType(typeof(IEnumerable<UserResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAll()
         {
-            var users = await _userService.GetAllUsersAsync();
+            var requestUserId = this.GetUserId(); // ✅ Pega do token JWT
+            var users = await _userService.GetAllUsersAsync(requestUserId);
             return Ok(users);
         }
 
@@ -30,14 +35,19 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var user = await _userService.GetUserByIdAsync(id);
-                
+                var requestUserId = this.GetUserId(); // ✅ Pega do token JWT
+                var user = await _userService.GetUserByIdAsync(id, requestUserId);
+
                 if (user == null)
                 {
                     return NotFound(new { message = $"Usuário com ID {id} não encontrado" });
                 }
 
                 return Ok(user);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
             }
             catch (Exception ex)
             {

@@ -1,14 +1,18 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WebApplicationAPI.DTO;
 using WebApplicationAPI.Services.Interfaces;
+using WebApplicationAPI.Extensions;
 
 namespace WebApplicationAPI.Controllers
 {
     [ApiController]
     [Route("api/v1/monthly-financial")]
+    [Authorize]
     public class MonthlyFinancialController : ControllerBase
     {
         private readonly IMonthlyFinancialService _service;
@@ -25,7 +29,8 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.CreateAsync(request);
+                var userId = this.GetUserId(); // ? Pega do token JWT
+                var result = await _service.CreateAsync(userId, request);
                 return StatusCode(201, ApiResponse<MonthlyFinancialResponse>.Success(result, "Controle mensal criado com sucesso"));
             }
             catch (InvalidOperationException ex)
@@ -45,8 +50,13 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.UpdateAsync(id, request);
+                var userId = this.GetUserId(); // ? Pega do token JWT
+                var result = await _service.UpdateAsync(id, userId, request);
                 return Ok(ApiResponse<MonthlyFinancialResponse>.Success(result, "Controle mensal atualizado"));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
             }
             catch (InvalidOperationException ex)
             {
@@ -65,12 +75,17 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.DeleteAsync(id);
+                var userId = this.GetUserId(); // ? Pega do token JWT
+                var result = await _service.DeleteAsync(id, userId);
                 if (!result)
                 {
                     return NotFound(ApiResponse<object>.Fail("Registro não encontrado"));
                 }
                 return Ok(ApiResponse.Success("Registro deletado com sucesso"));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
             }
             catch (Exception ex)
             {
@@ -84,9 +99,11 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
+                var userId = this.GetUserId(); // ? Pega do token JWT
+
                 if (year.HasValue && month.HasValue)
                 {
-                    var specific = await _service.GetByYearAndMonthAsync(year.Value, month.Value);
+                    var specific = await _service.GetByYearAndMonthAsync(userId, year.Value, month.Value);
                     if (specific == null)
                     {
                         return NotFound(ApiResponse<object>.Fail($"Registro não encontrado para {month}/{year}"));
@@ -96,11 +113,11 @@ namespace WebApplicationAPI.Controllers
 
                 if (year.HasValue)
                 {
-                    var result = await _service.GetByYearAsync(year.Value);
+                    var result = await _service.GetByYearAsync(userId, year.Value);
                     return Ok(ApiResponse<List<MonthlyFinancialResponse>>.Success(result));
                 }
 
-                var all = await _service.GetAllAsync();
+                var all = await _service.GetAllAsync(userId);
                 return Ok(ApiResponse<List<MonthlyFinancialResponse>>.Success(all));
             }
             catch (Exception ex)
@@ -116,7 +133,8 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.GetByIdAsync(id);
+                var userId = this.GetUserId(); // ? Pega do token JWT
+                var result = await _service.GetByIdAsync(id, userId);
                 if (result == null)
                 {
                     return NotFound(ApiResponse<object>.Fail("Registro não encontrado"));

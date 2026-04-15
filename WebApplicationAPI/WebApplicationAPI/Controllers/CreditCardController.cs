@@ -1,15 +1,18 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WebApplicationAPI.DTO;
 using WebApplicationAPI.Services.Interfaces;
+using WebApplicationAPI.Extensions;
 
 namespace WebApplicationAPI.Controllers
 {
     [ApiController]
     [Route("api/creditcard")]
+    [Authorize]
     public class CreditCardController : ControllerBase
     {
         private readonly ICreditCardService _service;
@@ -26,7 +29,8 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.CreateAsync(request);
+                var userId = this.GetUserId(); // ? Pega do token JWT
+                var result = await _service.CreateAsync(userId, request);
                 return StatusCode(201, ApiResponse<CreditCardResponse>.Success(result, "Cartão criado com sucesso"));
             }
             catch (InvalidOperationException ex)
@@ -46,12 +50,17 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.UpdateAsync(id, request);
+                var userId = this.GetUserId(); // ? Pega do token JWT
+                var result = await _service.UpdateAsync(id, userId, request);
                 return Ok(ApiResponse<CreditCardResponse>.Success(result, "Cartão atualizado com sucesso"));
             }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
             }
             catch (Exception ex)
             {
@@ -66,12 +75,17 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.DeleteAsync(id);
+                var userId = this.GetUserId(); // ? Pega do token JWT
+                var result = await _service.DeleteAsync(id, userId);
                 if (!result)
                 {
                     return NotFound(ApiResponse<object>.Fail("Cartão não encontrado"));
                 }
                 return Ok(ApiResponse.Success("Cartão deletado com sucesso"));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
             }
             catch (Exception ex)
             {
@@ -85,7 +99,8 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.GetAllAsync();
+                var userId = this.GetUserId(); // ? Pega do token JWT ? CORREÇÃO PRINCIPAL
+                var result = await _service.GetAllAsync(userId);
                 return Ok(ApiResponse<List<CreditCardResponse>>.Success(result));
             }
             catch (Exception ex)
@@ -101,12 +116,17 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.GetByIdAsync(id);
+                var userId = this.GetUserId(); // ? Pega do token JWT
+                var result = await _service.GetByIdAsync(id, userId);
                 if (result == null)
                 {
                     return NotFound(ApiResponse<object>.Fail("Cartão não encontrado"));
                 }
                 return Ok(ApiResponse<CreditCardResponse>.Success(result));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
             }
             catch (Exception ex)
             {

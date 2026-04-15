@@ -6,27 +6,39 @@ using WebApplicationAPI.Commands.Expense;
 using WebApplicationAPI.DTO;
 using WebApplicationAPI.Models;
 using WebApplicationAPI.Repositories.Interfaces;
+using WebApplicationAPI.Helpers;
 
 namespace WebApplicationAPI.Handlers.Expense
 {
     public class UpdateExpenseHandler : IRequestHandler<UpdateExpenseCommand, ExpenseResponse>
     {
         private readonly IExpenseRepository _repository;
+        private readonly UserContext _userContext;
 
-        public UpdateExpenseHandler(IExpenseRepository repository)
+        public UpdateExpenseHandler(IExpenseRepository repository, UserContext userContext)
         {
             _repository = repository;
+            _userContext = userContext;
         }
 
         public async Task<ExpenseResponse> Handle(UpdateExpenseCommand request, CancellationToken cancellationToken)
         {
+            var userId = _userContext.GetCurrentUserId(); // ? Pega do token JWT
+
             var existing = await _repository.GetExpenseByIdAsync(request.Id);
             if (existing == null) return null;
+
+            // ? Validar ownership - apenas dono pode atualizar
+            if (existing.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para atualizar esta despesa");
+            }
 
             var req = request.Request;
             var updated = new Models.Expense
             {
                 Id = request.Id,
+                UserId = existing.UserId, // ? Preserva o UserId original
                 Month = req.Month,
                 Year = req.Year,
                 Description = req.Description,

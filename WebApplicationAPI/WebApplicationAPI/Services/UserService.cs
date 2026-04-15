@@ -14,29 +14,42 @@ namespace WebApplicationAPI.Services
             _userRepository = userRepository;
         }
 
-        public async Task<IEnumerable<UserResponse>> GetAllUsersAsync()
+        public async Task<IEnumerable<UserResponse>> GetAllUsersAsync(int requestUserId)
         {
-            var users = await _userRepository.GetAllAsync();
+            // ? Chama repository que usa SP com verificação de Admin
+            var users = await _userRepository.GetAllAsync(requestUserId);
             return users.Select(u => new UserResponse
             {
                 Id = u.Id,
                 Name = u.Name,
-                Email = u.Email
+                Email = u.Email,
+                Role = u.Role,
+                IsActive = u.IsActive
             });
         }
 
-        public async Task<UserResponse?> GetUserByIdAsync(int id)
+        public async Task<UserResponse?> GetUserByIdAsync(int id, int requestUserId)
         {
             var user = await _userRepository.GetByIdAsync(id);
 
             if (user is null)
                 return null;
 
+            // ? Verificar se o requestUser pode ver este usuário
+            // Admin vê qualquer um, usuário comum só vê a si mesmo
+            var requestUser = await _userRepository.GetByIdAsync(requestUserId);
+            if (requestUser?.Role != "Admin" && id != requestUserId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para ver este usuário");
+            }
+
             return new UserResponse
             {
                 Id = user.Id,
                 Name = user.Name,
-                Email = user.Email
+                Email = user.Email,
+                Role = user.Role,
+                IsActive = user.IsActive
             };
         }
 

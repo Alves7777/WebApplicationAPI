@@ -16,9 +16,10 @@ namespace WebApplicationAPI.Services
             _categoryRepository = categoryRepository;
         }
 
-        public async Task<IEnumerable<CategoryResponse>> GetAllCategoryAsync()
+        public async Task<IEnumerable<CategoryResponse>> GetAllCategoryAsync(int userId)
         {
-            var category = await _categoryRepository.GetAllAsync();
+            // ✅ Busca apenas categorias do usuário logado
+            var category = await _categoryRepository.GetByUserIdAsync(userId);
             return category.Select(query => new CategoryResponse
             {
                 Id = query.Id,
@@ -28,12 +29,18 @@ namespace WebApplicationAPI.Services
             });
         }
 
-        public async Task<CategoryResponse?> GetCategoryByIdAsync(int id)
+        public async Task<CategoryResponse?> GetCategoryByIdAsync(int id, int userId)
         {
             var category = await _categoryRepository.GetByIdAsync(id);
 
             if (category is null) {
                 return null;
+            }
+
+            // ✅ Verificar se a categoria pertence ao usuário
+            if (category.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para acessar esta categoria");
             }
 
             return new CategoryResponse
@@ -46,10 +53,11 @@ namespace WebApplicationAPI.Services
             };
         }
 
-        public async Task<CategoryResponse> CreateCategoryAsync(CreateCategoryRequest request)
+        public async Task<CategoryResponse> CreateCategoryAsync(int userId, CreateCategoryRequest request)
         {
             var category = new Category
             {
+                UserId = userId, // ✅ Vincula ao usuário logado
                 Name = request.Name,
                 Description = request.Description,
                 IsActive = request.IsActive,

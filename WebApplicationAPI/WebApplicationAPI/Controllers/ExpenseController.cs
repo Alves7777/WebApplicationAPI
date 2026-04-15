@@ -1,6 +1,7 @@
-using System.Threading.Tasks;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 using WebApplicationAPI.Commands.Expense;
 using WebApplicationAPI.DTO;
 using WebApplicationAPI.Queries.Expense;
@@ -9,6 +10,7 @@ namespace WebApplicationAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ExpenseController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -179,10 +181,9 @@ namespace WebApplicationAPI.Controllers
 
                         var request = new CreateExpenseRequest
                         {
-                            CategoryId = int.Parse(parts[0].Trim()),
+                            Category = parts[0].Trim(),
                             Amount = decimal.Parse(parts[1].Trim().Replace(".", ",")),
                             Description = parts[2].Trim(),
-                            ExpenseDate = DateTime.Parse(parts[3].Trim()),
                             Month = int.Parse(parts[4].Trim()),
                             Year = int.Parse(parts[5].Trim()),
                             Status = parts[6].Trim(),

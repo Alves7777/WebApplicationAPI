@@ -75,6 +75,21 @@ namespace WebApplicationAPI.Repositories
             return result.AsList();
         }
 
+        public async Task<List<Expense>> GetExpensesByUserIdAsync(int userId, int? month = null, int? year = null, string? category = null, string? status = null, string? paymentMethod = null)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var result = await connection.QueryAsync<Expense>("sp_GetExpensesByUserId", new
+            {
+                UserId = userId,
+                Month = month,
+                Year = year,
+                Category = category,
+                Status = status,
+                PaymentMethod = paymentMethod
+            }, commandType: CommandType.StoredProcedure);
+            return result.AsList();
+        }
+
         public async Task<Expense> GetExpenseByIdAsync(int id)
         {
             using var connection = new SqlConnection(_connectionString);

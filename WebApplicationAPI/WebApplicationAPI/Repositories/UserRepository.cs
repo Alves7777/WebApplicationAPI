@@ -16,12 +16,16 @@ namespace WebApplicationAPI.Repositories
         }
 
         // sp_GetAllUsers
-        public async Task<IEnumerable<User>> GetAllAsync()
+        public async Task<IEnumerable<User>> GetAllAsync(int requestUserId)
         {
             using var connection = new SqlConnection(_connectionString);
-            
+
+            // ? SP verifica se requestUserId é Admin
+            // Se for Admin: retorna TODOS os usuários
+            // Se não for: retorna apenas o próprio usuário
             return await connection.QueryAsync<User>(
                 "sp_GetAllUsers",
+                new { RequestUserId = requestUserId },
                 commandType: CommandType.StoredProcedure
             );
         }
@@ -56,13 +60,19 @@ namespace WebApplicationAPI.Repositories
         public async Task<int> CreateAsync(User user)
         {
             using var connection = new SqlConnection(_connectionString);
-            
+
             var result = await connection.QuerySingleAsync<int>(
                 "sp_CreateUser",
-                new { Name = user.Name, Email = user.Email },
+                new { 
+                    Name = user.Name, 
+                    Email = user.Email,
+                    PasswordHash = user.PasswordHash,
+                    Role = user.Role ?? "User",
+                    IsActive = user.IsActive
+                },
                 commandType: CommandType.StoredProcedure
             );
-            
+
             return result;
         }
 
@@ -70,13 +80,20 @@ namespace WebApplicationAPI.Repositories
         public async Task<bool> UpdateAsync(User user)
         {
             using var connection = new SqlConnection(_connectionString);
-            
+
             var rowsAffected = await connection.ExecuteScalarAsync<int>(
                 "sp_UpdateUser",
-                new { Id = user.Id, Name = user.Name, Email = user.Email },
+                new { 
+                    Id = user.Id, 
+                    Name = user.Name, 
+                    Email = user.Email,
+                    PasswordHash = user.PasswordHash,
+                    Role = user.Role,
+                    IsActive = user.IsActive
+                },
                 commandType: CommandType.StoredProcedure
             );
-            
+
             return rowsAffected > 0;
         }
 

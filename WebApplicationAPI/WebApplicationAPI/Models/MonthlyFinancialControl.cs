@@ -5,6 +5,7 @@ namespace WebApplicationAPI.Models
     public class MonthlyFinancialControl
     {
         public int Id { get; set; }
+        public int UserId { get; set; } // ? Adicionado para multi-tenancy
         public int Year { get; set; }
         public int Month { get; set; }
         public decimal Money { get; set; }
