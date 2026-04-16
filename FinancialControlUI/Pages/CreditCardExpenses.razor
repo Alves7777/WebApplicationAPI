@@ -1,4 +1,6 @@
 @page "/creditcard/{CardId:int}/expenses"
+
+<AuthorizeRoute>
 @using FinancialControlUI.Models
 @using FinancialControlUI.Services
 @inject CreditCardService CreditCardService
@@ -375,3 +377,4 @@ else
         return true;
     }
 }
+</AuthorizeRoute>

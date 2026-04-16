@@ -50,7 +50,7 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var userId = this.GetUserId(); // ? Pega do token JWT
+                var userId = this.GetUserId();
                 var result = await _service.UpdateAsync(id, userId, request);
                 return Ok(ApiResponse<MonthlyFinancialResponse>.Success(result, "Controle mensal atualizado"));
             }
@@ -99,7 +99,7 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var userId = this.GetUserId(); // ? Pega do token JWT
+                var userId = this.GetUserId();
 
                 if (year.HasValue && month.HasValue)
                 {
@@ -133,7 +133,7 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var userId = this.GetUserId(); // ? Pega do token JWT
+                var userId = this.GetUserId();
                 var result = await _service.GetByIdAsync(id, userId);
                 if (result == null)
                 {

@@ -10,16 +10,16 @@ namespace WebApplicationAPI.Repositories.Interfaces
 
         Task<MonthlyFinancialControl> UpdateAsync(MonthlyFinancialControl entity);
 
-        Task<bool> DeleteAsync(int id);
+        Task<bool> DeleteAsync(int id, int userId);
 
-        Task<MonthlyFinancialControl> GetByIdAsync(int id);
+        Task<MonthlyFinancialControl> GetByIdAsync(int id, int userId);
 
-        Task<List<MonthlyFinancialControl>> GetAllAsync();
+        Task<List<MonthlyFinancialControl>> GetAllAsync(int userId);
 
         Task<List<MonthlyFinancialControl>> GetByUserIdAsync(int userId); // ? Novo método
 
-        Task<MonthlyFinancialControl> GetByYearAndMonthAsync(int year, int month);
+        Task<MonthlyFinancialControl> GetByYearAndMonthAsync(int userId, int year, int month);
 
-        Task<decimal> GetExpensesTotalByYearAndMonthAsync(int year, int month);
+        Task<decimal> GetExpensesTotalByYearAndMonthAsync(int userId, int year, int month);
     }
 }

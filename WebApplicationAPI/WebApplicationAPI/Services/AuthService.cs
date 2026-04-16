@@ -49,7 +49,7 @@ namespace WebApplicationAPI.Services
             var userId = await _userRepository.CreateAsync(user);
             user.Id = userId;
 
-            var token = GenerateJwtToken(user);
+            var (token, expiresAt) = GenerateJwtToken(user);
 
             return new AuthResponse
             {
@@ -57,7 +57,8 @@ namespace WebApplicationAPI.Services
                 Name = user.Name,
                 Email = user.Email,
                 Token = token,
-                Role = user.Role
+                Role = user.Role,
+                ExpiresAt = expiresAt
             };
         }
 
@@ -75,7 +76,7 @@ namespace WebApplicationAPI.Services
                 throw new UnauthorizedAccessException("Usuário inativo");
             }
 
-            var token = GenerateJwtToken(user);
+            var (token, expiresAt) = GenerateJwtToken(user);
 
             return new AuthResponse
             {
@@ -83,18 +84,22 @@ namespace WebApplicationAPI.Services
                 Name = user.Name,
                 Email = user.Email,
                 Token = token,
-                Role = user.Role
+                Role = user.Role,
+                ExpiresAt = expiresAt
             };
         }
 
-        private string GenerateJwtToken(User user)
+        private (string token, DateTime expiresAt) GenerateJwtToken(User user)
         {
             var jwtKey = _configuration["Jwt:Key"] ?? "ChaveSecretaSuperSegura123!@#MinimoDe32Caracteres";
             var jwtIssuer = _configuration["Jwt:Issuer"] ?? "WebApplicationAPI";
             var jwtAudience = _configuration["Jwt:Audience"] ?? "WebApplicationAPI";
+            var expirationMinutes = _configuration.GetValue<int>("Jwt:ExpirationInMinutes", 60);
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var expiresAt = DateTime.UtcNow.AddMinutes(expirationMinutes);
 
             var claims = new[]
             {
@@ -109,11 +114,11 @@ namespace WebApplicationAPI.Services
                 issuer: jwtIssuer,
                 audience: jwtAudience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddDays(7),
+                expires: expiresAt,
                 signingCredentials: credentials
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
         }
     }
 }

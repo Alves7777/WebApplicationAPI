@@ -1,4 +1,6 @@
 @page "/monthly-financial"
+
+<AuthorizeRoute>
 @using FinancialControlUI.Models
 @using FinancialControlUI.Services
 @inject MonthlyFinancialService MonthlyFinancialService
@@ -300,4 +302,5 @@ else
         }
     }
 }
+</AuthorizeRoute>
 

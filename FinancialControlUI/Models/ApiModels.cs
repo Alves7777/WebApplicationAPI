@@ -326,3 +326,44 @@ public class ConfirmPurchaseRequest
     public string Description { get; set; }
     public int CategoryId { get; set; }
 }
+
+// Authentication Models
+public class LoginRequest
+{
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+public class RegisterRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+public class AuthResponse
+{
+    public int UserId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Token { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+
+    [System.Text.Json.Serialization.JsonConverter(typeof(UtcDateTimeConverter))]
+    public DateTime ExpiresAt { get; set; }
+}
+
+// Converter para garantir que DateTime seja sempre UTC
+public class UtcDateTimeConverter : System.Text.Json.Serialization.JsonConverter<DateTime>
+{
+    public override DateTime Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+    {
+        var dateTime = reader.GetDateTime();
+        return DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+    }
+
+    public override void Write(System.Text.Json.Utf8JsonWriter writer, DateTime value, System.Text.Json.JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(value.ToUniversalTime().ToString("o"));
+    }
+}

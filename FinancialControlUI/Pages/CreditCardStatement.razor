@@ -1,4 +1,6 @@
 @page "/creditcard/{CardId:int}/statement"
+
+<AuthorizeRoute>
 @using FinancialControlUI.Models
 @using FinancialControlUI.Services
 @using StatementModel = FinancialControlUI.Models.CreditCardStatement
@@ -243,3 +245,4 @@ else
         }
     }
 }
+</AuthorizeRoute>

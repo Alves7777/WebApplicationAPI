@@ -4,8 +4,10 @@
 @inject MonthlyFinancialService MonthlyFinancialService
 @inject ExpenseService ExpenseService
 @inject CategoryService CategoryService
+@inject AuthService AuthService
 
-<Shared.BackButton />
+<AuthorizeRoute>
+    <Shared.BackButton />
 
 <h3>Dashboard Financeiro</h3>
 
@@ -242,6 +244,11 @@ else
 
             Console.WriteLine($"=== Dashboard - Carregando dados de {currentMonthValue}/{currentYearValue} ===");
 
+            // Verificar qual usuário está logado
+            var userId = await AuthService.GetUserIdAsync();
+            var userName = await AuthService.GetUserNameAsync();
+            Console.WriteLine($"Usuário logado: ID={userId}, Nome={userName}");
+
             // Busca controle mensal do mês atual
             currentMonth = await MonthlyFinancialService.GetCurrentMonthAsync();
             if (currentMonth != null)
@@ -258,7 +265,16 @@ else
 
             // Busca todas as despesas do mês atual
             recentExpenses = await ExpenseService.GetAllAsync(currentMonthValue, currentYearValue);
-            Console.WriteLine($"Total de despesas: {recentExpenses.Count}");
+            Console.WriteLine($"Total de despesas retornadas: {recentExpenses.Count}");
+
+            if (recentExpenses.Any())
+            {
+                Console.WriteLine("Primeiras 5 despesas:");
+                foreach (var exp in recentExpenses.Take(5))
+                {
+                    Console.WriteLine($"  - {exp.Description}: {exp.Amount:C} (Categoria: {exp.Category})");
+                }
+            }
 
             // Calcula totais por categoria
             expensesByCategory = recentExpenses
@@ -295,3 +311,4 @@ else
         }
     }
 }
+</AuthorizeRoute>

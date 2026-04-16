@@ -22,6 +22,7 @@ namespace WebApplicationAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateExpenseRequest request)
         {
+            // O UserId é resolvido no handler via UserContext
             var result = await _mediator.Send(new CreateExpenseCommand(request));
             return StatusCode(201, ApiResponse<ExpenseResponse>.Success(result, "Despesa criada com sucesso"));
         }
@@ -64,6 +65,7 @@ namespace WebApplicationAPI.Controllers
         [HttpGet]
         public async Task<IActionResult> Get([FromQuery] GetExpensesQuery query)
         {
+            // O UserId é resolvido no handler via UserContext
             var result = await _mediator.Send(query);
             return Ok(ApiResponse<List<ExpenseResponse>>.Success(result));
         }

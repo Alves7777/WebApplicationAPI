@@ -1,4 +1,6 @@
 @page "/users"
+
+<AuthorizeRoute>
 @using FinancialControlUI.Models
 @using FinancialControlUI.Services
 @inject UserService UserService
@@ -176,3 +178,4 @@ else
         }
     }
 }
+</AuthorizeRoute>

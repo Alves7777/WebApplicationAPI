@@ -2,99 +2,101 @@
 
 <PageTitle>Controle Financeiro</PageTitle>
 
-<div class="container-fluid p-3">
-    <div class="mb-4">
-        <h1 class="display-4">💰 Sistema de Controle Financeiro</h1>
-        <p class="lead">Gerencie suas finanças de forma simples e eficiente</p>
-    </div>
+<AuthorizeRoute>
+    <div class="container-fluid p-3">
+        <div class="mb-4">
+            <h1 class="display-4">💰 Sistema de Controle Financeiro</h1>
+            <p class="lead">Gerencie suas finanças de forma simples e eficiente</p>
+        </div>
 
-    <div class="row">
-        <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">📊 Dashboard</h5>
-                    <p class="card-text">Visualize o resumo completo das suas finanças com gráficos e estatísticas.</p>
-                    <a href="/dashboard" class="btn btn-primary">Acessar Dashboard</a>
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">📊 Dashboard</h5>
+                        <p class="card-text">Visualize o resumo completo das suas finanças com gráficos e estatísticas.</p>
+                        <a href="/dashboard" class="btn btn-primary">Acessar Dashboard</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">💳 Despesas</h5>
+                        <p class="card-text">Registre e gerencie todas as suas despesas mensais.</p>
+                        <a href="/expenses" class="btn btn-primary">Gerenciar Despesas</a>
+                    </div>
+                </div>
+            </div>
+            @* Importar CSV está disponível na tela de Despesas do Cartão *@
+            @* <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">📥 Importar CSV</h5>
+                        <p class="card-text">Importe despesas em lote através de arquivos CSV.</p>
+                        <a href="/import-csv" class="btn btn-primary">Importar CSV</a>
+                    </div>
+                </div>
+            </div> *@
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">💳 Cartões de Crédito</h5>
+                        <p class="card-text">Gerencie seus cartões de crédito e simule compras.</p>
+                        <a href="/creditcards" class="btn btn-primary">Meus Cartões</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">📅 Controle Mensal</h5>
+                        <p class="card-text">Configure e acompanhe seu controle financeiro mensal.</p>
+                        <a href="/monthly-financial" class="btn btn-primary">Controle Mensal</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">🏷️ Categorias</h5>
+                        <p class="card-text">Organize suas despesas criando e gerenciando categorias.</p>
+                        <a href="/categories" class="btn btn-primary">Gerenciar Categorias</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">🔢 Simulador</h5>
+                        <p class="card-text">Simule compras parceladas e veja o impacto nas suas finanças.</p>
+                        <a href="/simulator" class="btn btn-primary">Simular Compra</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">👥 Usuários</h5>
+                        <p class="card-text">Gerencie os usuários do sistema.</p>
+                        <a href="/users" class="btn btn-primary">Gerenciar Usuários</a>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">💳 Despesas</h5>
-                    <p class="card-text">Registre e gerencie todas as suas despesas mensais.</p>
-                    <a href="/expenses" class="btn btn-primary">Gerenciar Despesas</a>
-                </div>
-            </div>
-        </div>
-        @* Importar CSV está disponível na tela de Despesas do Cartão *@
-        @* <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">📥 Importar CSV</h5>
-                    <p class="card-text">Importe despesas em lote através de arquivos CSV.</p>
-                    <a href="/import-csv" class="btn btn-primary">Importar CSV</a>
-                </div>
-            </div>
-        </div> *@
-        <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">💳 Cartões de Crédito</h5>
-                    <p class="card-text">Gerencie seus cartões de crédito e simule compras.</p>
-                    <a href="/creditcards" class="btn btn-primary">Meus Cartões</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">📅 Controle Mensal</h5>
-                    <p class="card-text">Configure e acompanhe seu controle financeiro mensal.</p>
-                    <a href="/monthly-financial" class="btn btn-primary">Controle Mensal</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">🏷️ Categorias</h5>
-                    <p class="card-text">Organize suas despesas criando e gerenciando categorias.</p>
-                    <a href="/categories" class="btn btn-primary">Gerenciar Categorias</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">🔢 Simulador</h5>
-                    <p class="card-text">Simule compras parceladas e veja o impacto nas suas finanças.</p>
-                    <a href="/simulator" class="btn btn-primary">Simular Compra</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">👥 Usuários</h5>
-                    <p class="card-text">Gerencie os usuários do sistema.</p>
-                    <a href="/users" class="btn btn-primary">Gerenciar Usuários</a>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="mt-5">
-        <h3>Recursos Principais</h3>
-        <ul>
-            <li>✅ Controle completo de despesas</li>
-            <li>✅ Gerenciamento de cartões de crédito</li>
-            <li>✅ Importação de despesas via CSV (disponível em Despesas do Cartão)</li>
-            <li>✅ Simulador de compras parceladas</li>
-            <li>✅ Dashboard com resumo financeiro</li>
-            <li>✅ Controle mensal de receitas e despesas</li>
-            <li>✅ Categorização de despesas</li>
-            <li>✅ Gerenciamento de usuários</li>
-        </ul>
+        <div class="mt-5">
+            <h3>Recursos Principais</h3>
+            <ul>
+                <li>✅ Controle completo de despesas</li>
+                <li>✅ Gerenciamento de cartões de crédito</li>
+                <li>✅ Importação de despesas via CSV (disponível em Despesas do Cartão)</li>
+                <li>✅ Simulador de compras parceladas</li>
+                <li>✅ Dashboard com resumo financeiro</li>
+                <li>✅ Controle mensal de receitas e despesas</li>
+                <li>✅ Categorização de despesas</li>
+                <li>✅ Gerenciamento de usuários</li>
+            </ul>
+        </div>
     </div>
-</div>
+</AuthorizeRoute>

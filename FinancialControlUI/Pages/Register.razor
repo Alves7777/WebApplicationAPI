@@ -1,0 +1,164 @@
+@page "/register"
+@using FinancialControlUI.Models
+@using FinancialControlUI.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-4">Criar Conta</h3>
+
+                    <EditForm Model="registerRequest" OnValidSubmit="HandleRegister">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="text-danger" />
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nome:</label>
+                            <InputText id="name" @bind-Value="registerRequest.Name" class="form-control" placeholder="Seu nome completo" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email:</label>
+                            <InputText id="email" @bind-Value="registerRequest.Email" class="form-control" type="email" placeholder="seu@email.com" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Senha:</label>
+                            <InputText id="password" @bind-Value="registerRequest.Password" class="form-control" type="password" placeholder="Mínimo 6 caracteres" />
+                            <small class="form-text text-muted">A senha deve ter pelo menos 6 caracteres</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">Confirmar Senha:</label>
+                            <InputText id="confirmPassword" @bind-Value="confirmPassword" class="form-control" type="password" placeholder="Digite a senha novamente" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger" role="alert">
+                                @errorMessage
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(successMessage))
+                        {
+                            <div class="alert alert-success" role="alert">
+                                @successMessage
+                            </div>
+                        }
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>Criando conta...</span>
+                                }
+                                else
+                                {
+                                    <span>Criar Conta</span>
+                                }
+                            </button>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <p>Já tem uma conta? <a href="/login">Fazer login</a></p>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterRequest registerRequest = new();
+    private string confirmPassword = string.Empty;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Redirect if already authenticated
+        if (await AuthService.IsAuthenticatedAsync())
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    private async Task HandleRegister()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+            successMessage = string.Empty;
+
+            // Validations
+            if (string.IsNullOrWhiteSpace(registerRequest.Name))
+            {
+                errorMessage = "Por favor, informe seu nome.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(registerRequest.Email))
+            {
+                errorMessage = "Por favor, informe seu email.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(registerRequest.Password))
+            {
+                errorMessage = "Por favor, informe uma senha.";
+                return;
+            }
+
+            if (registerRequest.Password.Length < 6)
+            {
+                errorMessage = "A senha deve ter pelo menos 6 caracteres.";
+                return;
+            }
+
+            if (registerRequest.Password != confirmPassword)
+            {
+                errorMessage = "As senhas não coincidem.";
+                return;
+            }
+
+            var response = await AuthService.RegisterAsync(registerRequest);
+
+            if (response != null)
+            {
+                successMessage = "Conta criada com sucesso! Redirecionando...";
+                await AuthService.SaveTokenAsync(response);
+                await Task.Delay(1000); // Show success message briefly
+                Navigation.NavigateTo("/auth-callback");
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.Message.Contains("Email já cadastrado"))
+            {
+                errorMessage = "Este email já está cadastrado. Por favor, use outro email ou faça login.";
+            }
+            else
+            {
+                errorMessage = "Erro ao criar conta. Por favor, tente novamente.";
+            }
+            Console.WriteLine($"Registration error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Erro inesperado ao criar conta. Por favor, tente novamente.";
+            Console.WriteLine($"Unexpected error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

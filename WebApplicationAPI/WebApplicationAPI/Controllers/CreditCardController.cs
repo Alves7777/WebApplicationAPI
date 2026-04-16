@@ -29,7 +29,7 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var userId = this.GetUserId(); // ? Pega do token JWT
+                var userId = this.GetUserId();
                 var result = await _service.CreateAsync(userId, request);
                 return StatusCode(201, ApiResponse<CreditCardResponse>.Success(result, "Cartão criado com sucesso"));
             }
@@ -50,7 +50,7 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var userId = this.GetUserId(); // ? Pega do token JWT
+                var userId = this.GetUserId();
                 var result = await _service.UpdateAsync(id, userId, request);
                 return Ok(ApiResponse<CreditCardResponse>.Success(result, "Cartão atualizado com sucesso"));
             }
@@ -75,7 +75,7 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var userId = this.GetUserId(); // ? Pega do token JWT
+                var userId = this.GetUserId();
                 var result = await _service.DeleteAsync(id, userId);
                 if (!result)
                 {
@@ -99,7 +99,7 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var userId = this.GetUserId(); // ? Pega do token JWT ? CORREÇÃO PRINCIPAL
+                var userId = this.GetUserId();
                 var result = await _service.GetAllAsync(userId);
                 return Ok(ApiResponse<List<CreditCardResponse>>.Success(result));
             }
@@ -116,7 +116,7 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var userId = this.GetUserId(); // ? Pega do token JWT
+                var userId = this.GetUserId();
                 var result = await _service.GetByIdAsync(id, userId);
                 if (result == null)
                 {
@@ -141,7 +141,8 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.CreateExpenseAsync(id, request);
+                var userId = this.GetUserId();
+                var result = await _service.CreateExpenseAsync(id, userId, request);
                 return StatusCode(201, ApiResponse<CreditCardExpenseResponse>.Success(result, "Despesa criada com sucesso"));
             }
             catch (InvalidOperationException ex)
@@ -161,7 +162,8 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.UpdateExpenseAsync(expenseId, request);
+                var userId = this.GetUserId();
+                var result = await _service.UpdateExpenseAsync(expenseId, userId, request);
                 return Ok(ApiResponse<CreditCardExpenseResponse>.Success(result, "Despesa atualizada com sucesso"));
             }
             catch (InvalidOperationException ex)
@@ -181,7 +183,8 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.DeleteExpenseAsync(expenseId);
+                var userId = this.GetUserId();
+                var result = await _service.DeleteExpenseAsync(expenseId, userId);
                 if (!result)
                 {
                     return NotFound(ApiResponse<object>.Fail("Despesa não encontrada"));
@@ -200,7 +203,8 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.GetExpensesByCardAsync(id, month, year, category);
+                var userId = this.GetUserId();
+                var result = await _service.GetExpensesByCardAsync(id, userId, month, year, category);
                 return Ok(ApiResponse<List<CreditCardExpenseResponse>>.Success(result));
             }
             catch (Exception ex)
@@ -216,7 +220,8 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.GetExpenseByIdAsync(expenseId);
+                var userId = this.GetUserId();
+                var result = await _service.GetExpenseByIdAsync(expenseId, userId);
                 if (result == null)
                 {
                     return NotFound(ApiResponse<object>.Fail("Despesa não encontrada"));
@@ -246,8 +251,9 @@ namespace WebApplicationAPI.Controllers
                     return BadRequest(ApiResponse<object>.Fail("Apenas arquivos CSV são permitidos"));
                 }
 
+                var userId = this.GetUserId();
                 using var stream = file.OpenReadStream();
-                var result = await _service.ImportCsvAsync(id, stream);
+                var result = await _service.ImportCsvAsync(id, userId, stream);
 
                 return Ok(ApiResponse<CsvImportResult>.Success(result, $"{result.ImportedRecords} despesas importadas com sucesso"));
             }
@@ -268,7 +274,8 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.GetStatementAsync(id, month, year);
+                var userId = this.GetUserId();
+                var result = await _service.GetStatementAsync(id, userId, month, year);
                 return Ok(ApiResponse<CreditCardStatementResponse>.Success(result));
             }
             catch (InvalidOperationException ex)
@@ -288,7 +295,8 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.GetCategoryAnalysisAsync(id, month, year);
+                var userId = this.GetUserId();
+                var result = await _service.GetCategoryAnalysisAsync(id, userId, month, year);
                 return Ok(ApiResponse<List<CategoryAnalysisResponse>>.Success(result));
             }
             catch (InvalidOperationException ex)
@@ -308,7 +316,8 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.GetStatementByPeriodAsync(id, startDate, endDate);
+                var userId = this.GetUserId();
+                var result = await _service.GetStatementByPeriodAsync(id, userId, startDate, endDate);
                 return Ok(ApiResponse<CreditCardStatementResponse>.Success(result, $"Extrato de {startDate:dd/MM/yyyy} até {endDate:dd/MM/yyyy}"));
             }
             catch (InvalidOperationException ex)
@@ -328,7 +337,8 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.SimulatePurchaseAsync(id, request);
+                var userId = this.GetUserId();
+                var result = await _service.SimulatePurchaseAsync(id, userId, request);
                 return Ok(ApiResponse<SimulatePurchaseResponse>.Success(result, $"Simulação de compra: {result.Recommendation}"));
             }
             catch (InvalidOperationException ex)
@@ -348,7 +358,8 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.ConfirmPurchaseAsync(id, request);
+                var userId = this.GetUserId();
+                var result = await _service.ConfirmPurchaseAsync(id, userId, request);
                 return StatusCode(201, ApiResponse<InstallmentPurchaseResponse>.Success(result, "Compra parcelada registrada com sucesso"));
             }
             catch (InvalidOperationException ex)
@@ -367,7 +378,8 @@ namespace WebApplicationAPI.Controllers
         {
             try
             {
-                var result = await _service.GetInstallmentPurchasesAsync(id);
+                var userId = this.GetUserId();
+                var result = await _service.GetInstallmentPurchasesAsync(id, userId);
                 return Ok(ApiResponse<List<InstallmentPurchaseResponse>>.Success(result));
             }
             catch (Exception ex)

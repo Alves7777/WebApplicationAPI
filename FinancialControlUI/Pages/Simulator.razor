@@ -1,4 +1,6 @@
 ﻿@page "/simulator"
+
+<AuthorizeRoute>
 @page "/simulator/{CardId:int}"
 @using FinancialControlUI.Services
 @using FinancialControlUI.Models
@@ -314,3 +316,4 @@
 
     private string GetRecommendationBorder() => GetRecommendationColor();
 }
+</AuthorizeRoute>

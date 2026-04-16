@@ -1,0 +1,125 @@
+@page "/login"
+@using FinancialControlUI.Models
+@using FinancialControlUI.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-4">Login</h3>
+
+                    <EditForm Model="loginRequest" OnValidSubmit="HandleLogin">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="text-danger" />
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email:</label>
+                            <InputText id="email" @bind-Value="loginRequest.Email" class="form-control" type="email" placeholder="seu@email.com" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Senha:</label>
+                            <InputText id="password" @bind-Value="loginRequest.Password" class="form-control" type="password" placeholder="Digite sua senha" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger" role="alert">
+                                @errorMessage
+                            </div>
+                        }
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>Entrando...</span>
+                                }
+                                else
+                                {
+                                    <span>Entrar</span>
+                                }
+                            </button>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <p>Não tem uma conta? <a href="/register">Criar conta</a></p>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginRequest loginRequest = new();
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Redirect if already authenticated
+        if (await AuthService.IsAuthenticatedAsync())
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+
+            Console.WriteLine("=== Iniciando Login ===");
+            var response = await AuthService.LoginAsync(loginRequest);
+
+            if (response != null)
+            {
+                Console.WriteLine($"Login bem-sucedido! Token: {response.Token.Substring(0, 20)}...");
+                await AuthService.SaveTokenAsync(response);
+                Console.WriteLine("Token salvo no localStorage");
+
+                // Verificar se foi realmente salvo
+                var savedToken = await AuthService.GetTokenAsync();
+                if (string.IsNullOrEmpty(savedToken))
+                {
+                    Console.WriteLine("? ERRO: Token NÃO foi salvo no localStorage!");
+                    errorMessage = "Erro ao salvar credenciais. Tente novamente.";
+                    return;
+                }
+                else
+                {
+                    Console.WriteLine($"? Token confirmado no localStorage: {savedToken.Substring(0, 20)}...");
+                }
+
+                // Pequeno delay para garantir que localStorage salvou
+                await Task.Delay(200);
+
+                // Navegar para página de callback que vai verificar e inicializar
+                Console.WriteLine("Navegando para /auth-callback");
+                Navigation.NavigateTo("/auth-callback");
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = "Email ou senha inválidos. Por favor, tente novamente.";
+            Console.WriteLine($"Login error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Erro ao fazer login. Por favor, tente novamente.";
+            Console.WriteLine($"Unexpected error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

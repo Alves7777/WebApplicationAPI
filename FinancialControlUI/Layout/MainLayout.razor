@@ -1,9 +1,27 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
 
 <div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
     <main>
-        <article class="content">
+        <div class="top-row px-4">
+            <button class="btn btn-link" @onclick="GoBack">
+                <span class="bi bi-arrow-left me-1"></span> Voltar
+            </button>
+        </div>
+
+        <article class="content px-4">
             @Body
         </article>
     </main>
 </div>
+
+@code {
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/");
+    }
+}

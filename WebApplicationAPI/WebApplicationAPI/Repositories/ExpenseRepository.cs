@@ -22,6 +22,7 @@ namespace WebApplicationAPI.Repositories
         {
             using var connection = new SqlConnection(_connectionString);
             var parameters = new DynamicParameters();
+            parameters.Add("@UserId", expense.UserId);
             parameters.Add("@Month", expense.Month);
             parameters.Add("@Year", expense.Year);
             parameters.Add("@Description", expense.Description);
