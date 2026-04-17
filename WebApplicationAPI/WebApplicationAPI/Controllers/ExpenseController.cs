@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using WebApplicationAPI.Commands.Expense;
 using WebApplicationAPI.DTO;
+using WebApplicationAPI.Extensions;
 using WebApplicationAPI.Queries.Expense;
+using WebApplicationAPI.Queries.Summary;
 
 namespace WebApplicationAPI.Controllers
 {
@@ -30,7 +32,9 @@ namespace WebApplicationAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateExpenseRequest request)
         {
-            var result = await _mediator.Send(new UpdateExpenseCommand(id, request));
+            var userId = this.GetUserId();
+
+            var result = await _mediator.Send(new UpdateExpenseCommand(id, userId, request));
             if (result == null)
             {
                 return NotFound(ApiResponse<object>.Fail("Despesa não encontrada"));

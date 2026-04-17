@@ -23,7 +23,7 @@ namespace WebApplicationAPI.Handlers.Expense
         {
             var userId = _userContext.GetCurrentUserId(); // ? Pega do token JWT
 
-            var existing = await _repository.GetExpenseByIdAsync(request.Id);
+            var existing = await _repository.GetExpenseByIdAsync(request.Id, userId);
             if (existing == null)
             {
                 return false;

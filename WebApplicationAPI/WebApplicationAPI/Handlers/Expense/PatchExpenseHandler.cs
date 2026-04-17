@@ -22,12 +22,11 @@ namespace WebApplicationAPI.Handlers.Expense
 
         public async Task<ExpenseResponse> Handle(PatchExpenseCommand request, CancellationToken cancellationToken)
         {
-            var userId = _userContext.GetCurrentUserId(); // ? Pega do token JWT
+            var userId = _userContext.GetCurrentUserId();
 
-            var existing = await _repository.GetExpenseByIdAsync(request.Id);
+            var existing = await _repository.GetExpenseByIdAsync(request.Id, userId);
             if (existing == null) return null;
 
-            // ? Validar ownership - apenas dono pode fazer patch
             if (existing.UserId != userId)
             {
                 throw new UnauthorizedAccessException("Você não tem permissão para atualizar esta despesa");

@@ -44,13 +44,14 @@ namespace WebApplicationAPI.Repositories
             {
                 expense.Id,
                 expense.Month,
+                expense.UserId,
                 expense.Year,
                 expense.Description,
                 expense.Amount,
                 expense.Category,
                 expense.Status,
                 expense.PaymentMethod,
-                expense.CreatedAt
+                expense.UpdatedBy
             }, commandType: CommandType.StoredProcedure);
             return expense;
         }
@@ -91,10 +92,10 @@ namespace WebApplicationAPI.Repositories
             return result.AsList();
         }
 
-        public async Task<Expense> GetExpenseByIdAsync(int id)
+        public async Task<Expense> GetExpenseByIdAsync(int id, int userId)
         {
             using var connection = new SqlConnection(_connectionString);
-            var result = await connection.QueryFirstOrDefaultAsync<Expense>("sp_GetExpenseById", new { Id = id }, commandType: CommandType.StoredProcedure);
+            var result = await connection.QueryFirstOrDefaultAsync<Expense>("sp_GetExpenseById", new { Id = id, UserId = userId }, commandType: CommandType.StoredProcedure);
             return result;
         }
 

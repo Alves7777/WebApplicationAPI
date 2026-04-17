@@ -23,12 +23,14 @@ namespace WebApplicationAPI.Handlers.Expense
 
         public async Task<ExpenseResponse> Handle(UpdateExpenseCommand request, CancellationToken cancellationToken)
         {
-            var userId = _userContext.GetCurrentUserId(); // ? Pega do token JWT
+            var userId = _userContext.GetCurrentUserId();
 
-            var existing = await _repository.GetExpenseByIdAsync(request.Id);
-            if (existing == null) return null;
+            var existing = await _repository.GetExpenseByIdAsync(request.Id, userId);
+            if (existing == null)
+            {
+                return null;
+            }
 
-            // ? Validar ownership - apenas dono pode atualizar
             if (existing.UserId != userId)
             {
                 throw new UnauthorizedAccessException("Você não tem permissão para atualizar esta despesa");
@@ -38,7 +40,7 @@ namespace WebApplicationAPI.Handlers.Expense
             var updated = new Models.Expense
             {
                 Id = request.Id,
-                UserId = existing.UserId, // ? Preserva o UserId original
+                UserId = existing.UserId,
                 Month = req.Month,
                 Year = req.Year,
                 Description = req.Description,
@@ -46,7 +48,7 @@ namespace WebApplicationAPI.Handlers.Expense
                 Category = req.Category,
                 Status = req.Status,
                 PaymentMethod = req.PaymentMethod,
-                CreatedAt = existing.CreatedAt
+                UpdatedBy = existing.UserId
             };
 
             var result = await _repository.UpdateExpenseAsync(updated);
