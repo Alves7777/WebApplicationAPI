@@ -48,6 +48,7 @@ namespace WebApplicationAPI.Controllers
         {
             var result = await _mediator.Send(new PatchExpenseCommand(id, request));
             if (result == null)
+
             {
                 return NotFound(ApiResponse<object>.Fail("Despesa não encontrada"));
             }
@@ -59,10 +60,8 @@ namespace WebApplicationAPI.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _mediator.Send(new DeleteExpenseCommand(id));
-            if (!result)
-            {
-                return NotFound(ApiResponse<object>.Fail("Despesa não encontrada"));
-            }
+
+
             return Ok(ApiResponse.Success("Despesa deletada com sucesso"));
         }
 

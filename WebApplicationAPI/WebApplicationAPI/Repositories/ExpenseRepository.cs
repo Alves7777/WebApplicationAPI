@@ -56,10 +56,10 @@ namespace WebApplicationAPI.Repositories
             return expense;
         }
 
-        public async Task<bool> DeleteExpenseAsync(int id)
+        public async Task<bool> DeleteExpenseAsync(int id, int userId)
         {
             using var connection = new SqlConnection(_connectionString);
-            var rows = await connection.ExecuteAsync("sp_DeleteExpense", new { Id = id }, commandType: CommandType.StoredProcedure);
+            var rows = await connection.ExecuteAsync("sp_DeleteExpense", new { Id = id, UserId = userId }, commandType: CommandType.StoredProcedure);
             return rows > 0;
         }
 

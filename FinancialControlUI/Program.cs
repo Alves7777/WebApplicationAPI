@@ -9,7 +9,7 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 // Lê a URL da API do arquivo de configuração
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5296/api/";
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://192.168.0.178:7296/api/";
 
 // Configurar HttpClient com interceptor de autenticação
 builder.Services.AddScoped<AuthService>();
@@ -27,6 +27,7 @@ builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<ExpenseService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<SummaryService>();
+
 
 var host = builder.Build();
 

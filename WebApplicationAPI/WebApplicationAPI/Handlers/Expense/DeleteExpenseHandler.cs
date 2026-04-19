@@ -35,7 +35,7 @@ namespace WebApplicationAPI.Handlers.Expense
                 throw new UnauthorizedAccessException("Você não tem permissão para deletar esta despesa");
             }
 
-            return await _repository.DeleteExpenseAsync(request.Id);
+            return await _repository.DeleteExpenseAsync(request.Id, userId);
         }
     }
 }
