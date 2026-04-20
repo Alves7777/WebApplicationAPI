@@ -82,10 +82,7 @@
 
             if (response != null)
             {
-                Console.WriteLine($"Login bem-sucedido! Token: {response.Token.Substring(0, 20)}...");
                 await AuthService.SaveTokenAsync(response);
-                Console.WriteLine("Token salvo no localStorage");
-
                 // Verificar se foi realmente salvo
                 var savedToken = await AuthService.GetTokenAsync();
                 if (string.IsNullOrEmpty(savedToken))
@@ -103,7 +100,6 @@
                 await Task.Delay(200);
 
                 // Navegar para página de callback que vai verificar e inicializar
-                Console.WriteLine("Navegando para /auth-callback");
                 Navigation.NavigateTo("/auth-callback");
             }
         }

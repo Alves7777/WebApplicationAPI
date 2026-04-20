@@ -234,6 +234,12 @@ namespace WebApplicationAPI.Services
                 var records = csv.GetRecords<CsvExpenseRecord>().ToList();
                 result.TotalRecords = records.Count;
 
+                // Se houver registros, deletar despesas do cartão para o mês/ano do primeiro registro
+                if (records.Count > 0 && DateTime.TryParse(records[0].Date, out var firstDate))
+                {
+                    await _repository.DeleteExpensesByCardAndPeriodAsync(creditCardId, firstDate.Month, firstDate.Year);
+                }
+
                 foreach (var record in records)
                 {
                     try

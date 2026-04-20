@@ -23,7 +23,7 @@ namespace WebApplicationAPI.Repositories.Interfaces
         Task<Dictionary<string, decimal>> GetExpensesByCategoryAsync(int creditCardId, int month, int year);
         Task<bool> ExpenseExistsAsync(int creditCardId, DateTime purchaseDate, string description, decimal amount);
         Task<List<CreditCardExpense>> GetExpensesByPeriodAsync(int creditCardId, int userId, DateTime startDate, DateTime endDate);
-
+        Task<int> DeleteExpensesByCardAndPeriodAsync(int creditCardId, int month, int year);
         Task<int> CreateInstallmentPurchaseAsync(InstallmentPurchase purchase);
         Task<List<InstallmentPurchase>> GetActiveInstallmentsByMonthAsync(int creditCardId, int month, int year);
         Task<List<InstallmentPurchase>> GetAllActiveInstallmentsByMonthAsync(int month, int year);

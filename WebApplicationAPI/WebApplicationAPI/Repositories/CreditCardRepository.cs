@@ -11,8 +11,9 @@ using WebApplicationAPI.Repositories.Interfaces;
 
 namespace WebApplicationAPI.Repositories
 {
-    public class CreditCardRepository : ICreditCardRepository
-    {
+
+public class CreditCardRepository : ICreditCardRepository
+{
         private readonly string _connectionString;
 
         public CreditCardRepository(IConfiguration configuration)
@@ -20,7 +21,15 @@ namespace WebApplicationAPI.Repositories
             _connectionString = configuration.GetConnectionString("DefaultConnection");
         }
 
-        // ===== CREDIT CARD CRUD =====
+        public async Task<int> DeleteExpensesByCardAndPeriodAsync(int creditCardId, int month, int year)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var rows = await connection.ExecuteAsync(
+                "DELETE FROM CreditCardExpenses WHERE CreditCardId = @CreditCardId AND Month = @Month AND Year = @Year",
+                new { CreditCardId = creditCardId, Month = month, Year = year });
+            return rows;
+        }
+
 
         public async Task<int> CreateAsync(CreditCard creditCard)
         {
