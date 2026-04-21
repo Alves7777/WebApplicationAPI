@@ -1,13 +1,16 @@
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
-using MediatR;
-using Microsoft.AspNetCore.Mvc;
 using WebApplicationAPI.Queries.Summary;
+using WebApplicationAPI.Extensions;
 
 namespace WebApplicationAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class SummaryController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -19,8 +22,11 @@ namespace WebApplicationAPI.Controllers
         [HttpGet]
         public async Task<IActionResult> Get([FromQuery] int? month, [FromQuery] int? year, [FromQuery] decimal? salary, [FromQuery] decimal? reserve)
         {
+            var userId = this.GetUserId(); // ? Pega do token JWT
+
             var query = new GetFinancialSummaryQuery
             {
+                UserId = userId, // ? Adiciona userId na query
                 Month = month ?? DateTime.Now.Month,
                 Year = year ?? DateTime.Now.Year,
                 Salary = salary ?? 0,

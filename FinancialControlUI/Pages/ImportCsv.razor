@@ -1,4 +1,6 @@
 ﻿@page "/import-csv"
+
+<AuthorizeRoute>
 @using FinancialControlUI.Models
 @using FinancialControlUI.Services
 @using Microsoft.AspNetCore.Components.Forms
@@ -154,3 +156,4 @@
         errorMessage = null;
     }
 }
+</AuthorizeRoute>

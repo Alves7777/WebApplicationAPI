@@ -199,8 +199,37 @@ public class MonthlyFinancialService
         var month = DateTime.Now.Month;
         var year = DateTime.Now.Year;
 
-        var response = await _http.GetFromJsonAsync<ApiResponse<MonthlyFinancial>>($"v1/monthly-financial?year={year}&month={month}");
-        return response?.Data;
+        Console.WriteLine($"=== GetCurrentMonthAsync ===");
+        Console.WriteLine($"Buscando: {month}/{year}");
+
+        // Log do token
+        if (_http.DefaultRequestHeaders.Authorization != null)
+        {
+            var token = _http.DefaultRequestHeaders.Authorization.Parameter;
+            if (!string.IsNullOrEmpty(token))
+            {
+                Console.WriteLine($"Token: {token.Substring(0, Math.Min(20, token.Length))}...");
+            }
+        }
+        else
+        {
+            Console.WriteLine("?? NENHUM TOKEN NO HTTPCLIENT!");
+        }
+
+        var url = $"v1/monthly-financial?year={year}&month={month}";
+        Console.WriteLine($"URL: {url}");
+
+        try
+        {
+            var response = await _http.GetFromJsonAsync<ApiResponse<MonthlyFinancial>>(url);
+            Console.WriteLine($"Resposta recebida: {response?.Status}");
+            return response?.Data;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro: {ex.Message}");
+            throw;
+        }
     }
 
     public async Task<MonthlyFinancial?> CreateAsync(CreateMonthlyFinancialRequest request)

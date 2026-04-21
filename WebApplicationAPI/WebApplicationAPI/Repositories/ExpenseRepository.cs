@@ -22,6 +22,7 @@ namespace WebApplicationAPI.Repositories
         {
             using var connection = new SqlConnection(_connectionString);
             var parameters = new DynamicParameters();
+            parameters.Add("@UserId", expense.UserId);
             parameters.Add("@Month", expense.Month);
             parameters.Add("@Year", expense.Year);
             parameters.Add("@Description", expense.Description);
@@ -43,21 +44,22 @@ namespace WebApplicationAPI.Repositories
             {
                 expense.Id,
                 expense.Month,
+                expense.UserId,
                 expense.Year,
                 expense.Description,
                 expense.Amount,
                 expense.Category,
                 expense.Status,
                 expense.PaymentMethod,
-                expense.CreatedAt
+                expense.UpdatedBy
             }, commandType: CommandType.StoredProcedure);
             return expense;
         }
 
-        public async Task<bool> DeleteExpenseAsync(int id)
+        public async Task<bool> DeleteExpenseAsync(int id, int userId)
         {
             using var connection = new SqlConnection(_connectionString);
-            var rows = await connection.ExecuteAsync("sp_DeleteExpense", new { Id = id }, commandType: CommandType.StoredProcedure);
+            var rows = await connection.ExecuteAsync("sp_DeleteExpense", new { Id = id, UserId = userId }, commandType: CommandType.StoredProcedure);
             return rows > 0;
         }
 
@@ -75,10 +77,25 @@ namespace WebApplicationAPI.Repositories
             return result.AsList();
         }
 
-        public async Task<Expense> GetExpenseByIdAsync(int id)
+        public async Task<List<Expense>> GetExpensesByUserIdAsync(int userId, int? month = null, int? year = null, string? category = null, string? status = null, string? paymentMethod = null)
         {
             using var connection = new SqlConnection(_connectionString);
-            var result = await connection.QueryFirstOrDefaultAsync<Expense>("sp_GetExpenseById", new { Id = id }, commandType: CommandType.StoredProcedure);
+            var result = await connection.QueryAsync<Expense>("sp_GetExpensesByUserId", new
+            {
+                UserId = userId,
+                Month = month,
+                Year = year,
+                Category = category,
+                Status = status,
+                PaymentMethod = paymentMethod
+            }, commandType: CommandType.StoredProcedure);
+            return result.AsList();
+        }
+
+        public async Task<Expense> GetExpenseByIdAsync(int id, int userId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var result = await connection.QueryFirstOrDefaultAsync<Expense>("sp_GetExpenseById", new { Id = id, UserId = userId }, commandType: CommandType.StoredProcedure);
             return result;
         }
 

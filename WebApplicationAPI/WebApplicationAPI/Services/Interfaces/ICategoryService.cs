@@ -5,11 +5,11 @@ namespace WebApplicationAPI.Services.Interfaces
 {
     public interface ICategoryService
     {
-        Task<IEnumerable<CategoryResponse>> GetAllCategoryAsync();
+        Task<IEnumerable<CategoryResponse>> GetAllCategoryAsync(int userId); // ✅ Adicionado userId
 
-        Task<CategoryResponse> GetCategoryByIdAsync(int id);
+        Task<CategoryResponse> GetCategoryByIdAsync(int id, int userId); // ✅ Adicionado userId
 
-        Task<CategoryResponse> CreateCategoryAsync(CreateCategoryRequest request);
+        Task<CategoryResponse> CreateCategoryAsync(int userId, CreateCategoryRequest request); // ✅ Adicionado userId
 
     }
 }

@@ -1,0 +1,46 @@
+@page "/auth-callback"
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+    <div class="text-center">
+        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Carregando...</span>
+        </div>
+        <h4>Autenticando...</h4>
+        <p class="text-muted">Por favor, aguarde</p>
+    </div>
+</div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Console.WriteLine("=== AuthCallback - Verificando autenticação ===");
+
+            // Aguardar um pouco para garantir que localStorage foi salvo
+            await Task.Delay(100);
+
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            Console.WriteLine($"Autenticado? {isAuthenticated}");
+
+            if (isAuthenticated)
+            {
+                var token = await AuthService.GetTokenAsync();
+                Console.WriteLine($"Token encontrado: {token?.Substring(0, Math.Min(20, token?.Length ?? 0))}...");
+
+                // Inicializar token no HttpClient
+                await AuthService.InitializeAsync();
+
+                Console.WriteLine("Redirecionando para /");
+                Navigation.NavigateTo("/", forceLoad: true);
+            }
+            else
+            {
+                Console.WriteLine("? Não autenticado - voltando para login");
+                Navigation.NavigateTo("/login");
+            }
+        }
+    }
+}

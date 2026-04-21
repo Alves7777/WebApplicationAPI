@@ -1,14 +1,18 @@
-using System.Threading.Tasks;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 using WebApplicationAPI.Commands.Expense;
 using WebApplicationAPI.DTO;
+using WebApplicationAPI.Extensions;
 using WebApplicationAPI.Queries.Expense;
+using WebApplicationAPI.Queries.Summary;
 
 namespace WebApplicationAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ExpenseController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -20,6 +24,7 @@ namespace WebApplicationAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateExpenseRequest request)
         {
+            // O UserId é resolvido no handler via UserContext
             var result = await _mediator.Send(new CreateExpenseCommand(request));
             return StatusCode(201, ApiResponse<ExpenseResponse>.Success(result, "Despesa criada com sucesso"));
         }
@@ -27,7 +32,9 @@ namespace WebApplicationAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateExpenseRequest request)
         {
-            var result = await _mediator.Send(new UpdateExpenseCommand(id, request));
+            var userId = this.GetUserId();
+
+            var result = await _mediator.Send(new UpdateExpenseCommand(id, userId, request));
             if (result == null)
             {
                 return NotFound(ApiResponse<object>.Fail("Despesa não encontrada"));
@@ -41,6 +48,7 @@ namespace WebApplicationAPI.Controllers
         {
             var result = await _mediator.Send(new PatchExpenseCommand(id, request));
             if (result == null)
+
             {
                 return NotFound(ApiResponse<object>.Fail("Despesa não encontrada"));
             }
@@ -52,16 +60,15 @@ namespace WebApplicationAPI.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _mediator.Send(new DeleteExpenseCommand(id));
-            if (!result)
-            {
-                return NotFound(ApiResponse<object>.Fail("Despesa não encontrada"));
-            }
+
+
             return Ok(ApiResponse.Success("Despesa deletada com sucesso"));
         }
 
         [HttpGet]
         public async Task<IActionResult> Get([FromQuery] GetExpensesQuery query)
         {
+            // O UserId é resolvido no handler via UserContext
             var result = await _mediator.Send(query);
             return Ok(ApiResponse<List<ExpenseResponse>>.Success(result));
         }
@@ -179,10 +186,9 @@ namespace WebApplicationAPI.Controllers
 
                         var request = new CreateExpenseRequest
                         {
-                            CategoryId = int.Parse(parts[0].Trim()),
+                            Category = parts[0].Trim(),
                             Amount = decimal.Parse(parts[1].Trim().Replace(".", ",")),
                             Description = parts[2].Trim(),
-                            ExpenseDate = DateTime.Parse(parts[3].Trim()),
                             Month = int.Parse(parts[4].Trim()),
                             Year = int.Parse(parts[5].Trim()),
                             Status = parts[6].Trim(),

@@ -11,8 +11,9 @@ using WebApplicationAPI.Repositories.Interfaces;
 
 namespace WebApplicationAPI.Repositories
 {
-    public class CreditCardRepository : ICreditCardRepository
-    {
+
+public class CreditCardRepository : ICreditCardRepository
+{
         private readonly string _connectionString;
 
         public CreditCardRepository(IConfiguration configuration)
@@ -20,13 +21,22 @@ namespace WebApplicationAPI.Repositories
             _connectionString = configuration.GetConnectionString("DefaultConnection");
         }
 
-        // ===== CREDIT CARD CRUD =====
+        public async Task<int> DeleteExpensesByCardAndPeriodAsync(int creditCardId, int month, int year)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var rows = await connection.ExecuteAsync(
+                "DELETE FROM CreditCardExpenses WHERE CreditCardId = @CreditCardId AND Month = @Month AND Year = @Year",
+                new { CreditCardId = creditCardId, Month = month, Year = year });
+            return rows;
+        }
+
 
         public async Task<int> CreateAsync(CreditCard creditCard)
         {
             using var connection = new SqlConnection(_connectionString);
 
             var parameters = new DynamicParameters();
+            parameters.Add("@UserId", creditCard.UserId);
             parameters.Add("@Name", creditCard.Name);
             parameters.Add("@Brand", creditCard.Brand);
             parameters.Add("@CardLimit", creditCard.CardLimit);
@@ -53,6 +63,7 @@ namespace WebApplicationAPI.Repositories
                 new
                 {
                     creditCard.Id,
+                    creditCard.UserId,
                     creditCard.Name,
                     creditCard.Brand,
                     creditCard.CardLimit,
@@ -66,38 +77,52 @@ namespace WebApplicationAPI.Repositories
             return creditCard;
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(int id, int userId)
         {
             using var connection = new SqlConnection(_connectionString);
 
             var rows = await connection.ExecuteAsync(
                 "sp_DeleteCreditCard",
-                new { Id = id },
+                new { Id = id, UserId = userId },
                 commandType: CommandType.StoredProcedure
             );
 
             return rows > 0;
         }
 
-        public async Task<CreditCard> GetByIdAsync(int id)
+        public async Task<CreditCard> GetByIdAsync(int id, int? userId = null)
         {
             using var connection = new SqlConnection(_connectionString);
 
             var result = await connection.QueryFirstOrDefaultAsync<CreditCard>(
                 "sp_GetCreditCardById",
-                new { Id = id },
+                new { Id = id, UserId = userId },
                 commandType: CommandType.StoredProcedure
             );
 
             return result;
         }
 
-        public async Task<List<CreditCard>> GetAllAsync()
+        public async Task<List<CreditCard>> GetAllAsync(int userId)
         {
             using var connection = new SqlConnection(_connectionString);
 
             var result = await connection.QueryAsync<CreditCard>(
                 "sp_GetAllCreditCards",
+                new { UserId = userId },
+                commandType: CommandType.StoredProcedure
+            );
+
+            return result.ToList();
+        }
+
+        public async Task<List<CreditCard>> GetByUserIdAsync(int userId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            var result = await connection.QueryAsync<CreditCard>(
+                "sp_GetCreditCardsByUserId",
+                new { UserId = userId },
                 commandType: CommandType.StoredProcedure
             );
 
@@ -106,11 +131,12 @@ namespace WebApplicationAPI.Repositories
 
         // ===== CREDIT CARD EXPENSE CRUD =====
 
-        public async Task<int> CreateExpenseAsync(CreditCardExpense expense)
+        public async Task<int> CreateExpenseAsync(CreditCardExpense expense, int userId)
         {
             using var connection = new SqlConnection(_connectionString);
 
             var parameters = new DynamicParameters();
+            parameters.Add("@UserId", userId);
             parameters.Add("@CreditCardId", expense.CreditCardId);
             parameters.Add("@PurchaseDate", expense.PurchaseDate);
             parameters.Add("@Description", expense.Description);
@@ -177,7 +203,7 @@ namespace WebApplicationAPI.Repositories
             return result;
         }
 
-        public async Task<List<CreditCardExpense>> GetExpensesByCardAsync(int creditCardId, int? month = null, int? year = null, string? category = null)
+        public async Task<List<CreditCardExpense>> GetExpensesByCardAsync(int creditCardId, int userId, int? month = null, int? year = null, string? category = null)
         {
             using var connection = new SqlConnection(_connectionString);
 
@@ -186,6 +212,7 @@ namespace WebApplicationAPI.Repositories
                 new
                 {
                     CreditCardId = creditCardId,
+                    UserId = userId,
                     Month = month,
                     Year = year,
                     Category = category
@@ -254,7 +281,7 @@ namespace WebApplicationAPI.Repositories
             return parameters.Get<bool>("@Exists");
         }
 
-        public async Task<List<CreditCardExpense>> GetExpensesByPeriodAsync(int creditCardId, DateTime startDate, DateTime endDate)
+        public async Task<List<CreditCardExpense>> GetExpensesByPeriodAsync(int creditCardId, int userId, DateTime startDate, DateTime endDate)
         {
             using var connection = new SqlConnection(_connectionString);
 
@@ -263,6 +290,7 @@ namespace WebApplicationAPI.Repositories
                 new
                 {
                     CreditCardId = creditCardId,
+                    UserId = userId,
                     StartDate = startDate,
                     EndDate = endDate
                 },

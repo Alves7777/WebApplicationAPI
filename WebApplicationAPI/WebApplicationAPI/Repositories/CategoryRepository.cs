@@ -26,6 +26,18 @@ namespace WebApplicationAPI.Repositories
             );
         }
 
+        public async Task<IEnumerable<Category>> GetByUserIdAsync(int userId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            // ✅ Busca apenas categorias do usuário
+            return await connection.QueryAsync<Category>(
+                "sp_GetCategoriesByUserId",
+                new { UserId = userId },
+                commandType: CommandType.StoredProcedure
+            );
+        }
+
         public async Task<Category?> GetByIdAsync(int id)
         {
             using var connection = new SqlConnection(_connectionString);

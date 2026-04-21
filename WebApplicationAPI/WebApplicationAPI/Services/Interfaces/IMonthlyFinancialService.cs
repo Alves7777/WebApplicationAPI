@@ -7,18 +7,18 @@ namespace WebApplicationAPI.Services.Interfaces
 {
     public interface IMonthlyFinancialService
     {
-        Task<MonthlyFinancialResponse> CreateAsync(CreateMonthlyFinancialRequest request);
+        Task<MonthlyFinancialResponse> CreateAsync(int userId, CreateMonthlyFinancialRequest request); // ? Adicionado userId
 
-        Task<MonthlyFinancialResponse> UpdateAsync(int id, UpdateMonthlyFinancialRequest request);
+        Task<MonthlyFinancialResponse> UpdateAsync(int id, int userId, UpdateMonthlyFinancialRequest request); // ? Adicionado userId
 
-        Task<bool> DeleteAsync(int id);
+        Task<bool> DeleteAsync(int id, int userId); // ? Adicionado userId
 
-        Task<MonthlyFinancialResponse> GetByIdAsync(int id);
+        Task<MonthlyFinancialResponse> GetByIdAsync(int id, int userId); // ? Adicionado userId
 
-        Task<List<MonthlyFinancialResponse>> GetAllAsync();
+        Task<List<MonthlyFinancialResponse>> GetAllAsync(int userId); // ? Adicionado userId
 
-        Task<MonthlyFinancialResponse> GetByYearAndMonthAsync(int year, int month);
+        Task<MonthlyFinancialResponse> GetByYearAndMonthAsync(int userId, int year, int month); // ? Adicionado userId
 
-        Task<List<MonthlyFinancialResponse>> GetByYearAsync(int year);
+        Task<List<MonthlyFinancialResponse>> GetByYearAsync(int userId, int year); // ? Adicionado userId
     }
 }

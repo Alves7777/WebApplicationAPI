@@ -31,10 +31,11 @@ namespace WebApplicationAPI.Services
             _expenseRepository = expenseRepository;
         }
 
-        public async Task<CreditCardResponse> CreateAsync(CreateCreditCardRequest request)
+        public async Task<CreditCardResponse> CreateAsync(int userId, CreateCreditCardRequest request)
         {
             var creditCard = new CreditCard
             {
+                UserId = userId, // ? Vincula ao usuário logado
                 Name = request.Name,
                 Brand = request.Brand,
                 CardLimit = request.CardLimit,
@@ -51,12 +52,18 @@ namespace WebApplicationAPI.Services
             return MapToResponse(creditCard);
         }
 
-        public async Task<CreditCardResponse> UpdateAsync(int id, UpdateCreditCardRequest request)
+        public async Task<CreditCardResponse> UpdateAsync(int id, int userId, UpdateCreditCardRequest request)
         {
-            var existing = await _repository.GetByIdAsync(id);
+            var existing = await _repository.GetByIdAsync(id, userId);
             if (existing == null)
             {
                 throw new InvalidOperationException("Cartão não encontrado");
+            }
+
+            // ? Verificar se o cartão pertence ao usuário
+            if (existing.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para atualizar este cartão");
             }
 
             existing.Name = request.Name;
@@ -71,29 +78,54 @@ namespace WebApplicationAPI.Services
             return MapToResponse(existing);
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(int id, int userId)
         {
-            return await _repository.DeleteAsync(id);
+            var existing = await _repository.GetByIdAsync(id, userId);
+            if (existing == null)
+            {
+                return false;
+            }
+
+            // ? Verificar se o cartão pertence ao usuário
+            if (existing.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para deletar este cartão");
+            }
+
+            return await _repository.DeleteAsync(id, userId);
         }
 
-        public async Task<CreditCardResponse> GetByIdAsync(int id)
+        public async Task<CreditCardResponse> GetByIdAsync(int id, int userId)
         {
-            var creditCard = await _repository.GetByIdAsync(id);
-            return creditCard != null ? MapToResponse(creditCard) : null;
+            var creditCard = await _repository.GetByIdAsync(id, userId);
+
+            if (creditCard == null)
+            {
+                return null;
+            }
+
+            // ? Verificar se o cartão pertence ao usuário
+            if (creditCard.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para acessar este cartão");
+            }
+
+            return MapToResponse(creditCard);
         }
 
-        public async Task<List<CreditCardResponse>> GetAllAsync()
+        public async Task<List<CreditCardResponse>> GetAllAsync(int userId)
         {
-            var creditCards = await _repository.GetAllAsync();
+            // ? Buscar apenas cartões do usuário logado
+            var creditCards = await _repository.GetByUserIdAsync(userId);
             return creditCards.Select(MapToResponse).ToList();
         }
 
-        public async Task<CreditCardExpenseResponse> CreateExpenseAsync(int creditCardId, CreateCreditCardExpenseRequest request)
+        public async Task<CreditCardExpenseResponse> CreateExpenseAsync(int creditCardId, int userId, CreateCreditCardExpenseRequest request)
         {
-            var card = await _repository.GetByIdAsync(creditCardId);
-            if (card == null)
+            var card = await _repository.GetByIdAsync(creditCardId, userId);
+            if (card == null || card.UserId != userId)
             {
-                throw new InvalidOperationException("Cartão não encontrado");
+                throw new InvalidOperationException("Cartão não encontrado ou não pertence ao usuário");
             }
 
             var expense = new CreditCardExpense
@@ -109,18 +141,24 @@ namespace WebApplicationAPI.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            var id = await _repository.CreateExpenseAsync(expense);
+            var id = await _repository.CreateExpenseAsync(expense, userId);
             expense.Id = id;
 
             return MapToExpenseResponse(expense);
         }
 
-        public async Task<CreditCardExpenseResponse> UpdateExpenseAsync(int expenseId, UpdateCreditCardExpenseRequest request)
+        public async Task<CreditCardExpenseResponse> UpdateExpenseAsync(int expenseId, int userId, UpdateCreditCardExpenseRequest request)
         {
             var existing = await _repository.GetExpenseByIdAsync(expenseId);
             if (existing == null)
             {
                 throw new InvalidOperationException("Despesa não encontrada");
+            }
+            // Validação: só pode atualizar se o cartão for do usuário
+            var card = await _repository.GetByIdAsync(existing.CreditCardId, userId);
+            if (card == null || card.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para atualizar esta despesa");
             }
 
             existing.PurchaseDate = request.PurchaseDate;
@@ -135,24 +173,42 @@ namespace WebApplicationAPI.Services
             return MapToExpenseResponse(existing);
         }
 
-        public async Task<bool> DeleteExpenseAsync(int expenseId)
+        public async Task<bool> DeleteExpenseAsync(int expenseId, int userId)
         {
+            var existing = await _repository.GetExpenseByIdAsync(expenseId);
+            if (existing == null)
+            {
+                return false;
+            }
+            var card = await _repository.GetByIdAsync(existing.CreditCardId, userId);
+            if (card == null || card.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para deletar esta despesa");
+            }
             return await _repository.DeleteExpenseAsync(expenseId);
         }
 
-        public async Task<CreditCardExpenseResponse> GetExpenseByIdAsync(int expenseId)
+        public async Task<CreditCardExpenseResponse> GetExpenseByIdAsync(int expenseId, int userId)
         {
             var expense = await _repository.GetExpenseByIdAsync(expenseId);
-            return expense != null ? MapToExpenseResponse(expense) : null;
+            if (expense == null)
+                return null;
+            var card = await _repository.GetByIdAsync(expense.CreditCardId, userId);
+            if (card == null || card.UserId != userId)
+                throw new UnauthorizedAccessException("Você não tem permissão para acessar esta despesa");
+            return MapToExpenseResponse(expense);
         }
 
-        public async Task<List<CreditCardExpenseResponse>> GetExpensesByCardAsync(int creditCardId, int? month = null, int? year = null, string? category = null)
+        public async Task<List<CreditCardExpenseResponse>> GetExpensesByCardAsync(int creditCardId, int userId, int? month = null, int? year = null, string? category = null)
         {
-            var expenses = await _repository.GetExpensesByCardAsync(creditCardId, month, year, category);
+            var card = await _repository.GetByIdAsync(creditCardId, userId);
+            if (card == null || card.UserId != userId)
+                throw new UnauthorizedAccessException("Você não tem permissão para acessar as despesas deste cartão");
+            var expenses = await _repository.GetExpensesByCardAsync(creditCardId, userId, month, year, category);
             return expenses.Select(MapToExpenseResponse).ToList();
         }
 
-        public async Task<CsvImportResult> ImportCsvAsync(int creditCardId, Stream fileStream)
+        public async Task<CsvImportResult> ImportCsvAsync(int creditCardId, int userId, Stream fileStream)
         {
             var result = new CsvImportResult();
             var errors = new List<string>();
@@ -160,10 +216,10 @@ namespace WebApplicationAPI.Services
 
             try
             {
-                var card = await _repository.GetByIdAsync(creditCardId);
-                if (card == null)
+                var card = await _repository.GetByIdAsync(creditCardId, userId);
+                if (card == null || card.UserId != userId)
                 {
-                    throw new InvalidOperationException("Cartão não encontrado");
+                    throw new InvalidOperationException("Cartão não encontrado ou não pertence ao usuário");
                 }
 
                 using var reader = new StreamReader(fileStream);
@@ -177,6 +233,12 @@ namespace WebApplicationAPI.Services
                 using var csv = new CsvReader(reader, config);
                 var records = csv.GetRecords<CsvExpenseRecord>().ToList();
                 result.TotalRecords = records.Count;
+
+                // Se houver registros, deletar despesas do cartão para o mês/ano do primeiro registro
+                if (records.Count > 0 && DateTime.TryParse(records[0].Date, out var firstDate))
+                {
+                    await _repository.DeleteExpensesByCardAndPeriodAsync(creditCardId, firstDate.Month, firstDate.Year);
+                }
 
                 foreach (var record in records)
                 {
@@ -236,7 +298,7 @@ namespace WebApplicationAPI.Services
                             CreatedAt = DateTime.UtcNow
                         };
 
-                        await _repository.CreateExpenseAsync(expense);
+                        await _repository.CreateExpenseAsync(expense, userId);
                         result.ImportedRecords++;
                     }
                     catch (Exception ex)
@@ -257,12 +319,12 @@ namespace WebApplicationAPI.Services
             return result;
         }
 
-        public async Task<CreditCardStatementResponse> GetStatementAsync(int creditCardId, int month, int year)
+        public async Task<CreditCardStatementResponse> GetStatementAsync(int creditCardId, int userId, int month, int year)
         {
-            var card = await _repository.GetByIdAsync(creditCardId);
-            if (card == null)
+            var card = await _repository.GetByIdAsync(creditCardId, userId);
+            if (card == null || card.UserId != userId)
             {
-                throw new InvalidOperationException("Cartão não encontrado");
+                throw new InvalidOperationException("Cartão não encontrado ou não pertence ao usuário");
             }
 
             var closingDay = card.ClosingDay ?? 28;
@@ -282,7 +344,7 @@ namespace WebApplicationAPI.Services
 
             var (periodStart, periodEnd) = CalculateBillingPeriod(closingYear, closingMonth, closingDay);
 
-            var expenses = await _repository.GetExpensesByPeriodAsync(creditCardId, periodStart, periodEnd);
+            var expenses = await _repository.GetExpensesByPeriodAsync(creditCardId, userId, periodStart, periodEnd);
 
             return new CreditCardStatementResponse
             {
@@ -299,12 +361,12 @@ namespace WebApplicationAPI.Services
             };
         }
 
-        public async Task<List<CategoryAnalysisResponse>> GetCategoryAnalysisAsync(int creditCardId, int month, int year)
+        public async Task<List<CategoryAnalysisResponse>> GetCategoryAnalysisAsync(int creditCardId, int userId, int month, int year)
         {
-            var card = await _repository.GetByIdAsync(creditCardId);
-            if (card == null)
+            var card = await _repository.GetByIdAsync(creditCardId, userId);
+            if (card == null || card.UserId != userId)
             {
-                throw new InvalidOperationException("Cartão não encontrado");
+                throw new InvalidOperationException("Cartão não encontrado ou não pertence ao usuário");
             }
 
             var closingDay = card.ClosingDay ?? 28;
@@ -324,7 +386,7 @@ namespace WebApplicationAPI.Services
 
             var (periodStart, periodEnd) = CalculateBillingPeriod(closingYear, closingMonth, closingDay);
 
-            var expenses = await _repository.GetExpensesByPeriodAsync(creditCardId, periodStart, periodEnd);
+            var expenses = await _repository.GetExpensesByPeriodAsync(creditCardId, userId, periodStart, periodEnd);
             var totalAmount = expenses.Sum(e => e.Amount);
 
             return expenses
@@ -341,7 +403,7 @@ namespace WebApplicationAPI.Services
                 .ToList();
         }
 
-        public async Task<CreditCardStatementResponse> GetStatementByPeriodAsync(int creditCardId, DateTime startDate, DateTime endDate)
+        public async Task<CreditCardStatementResponse> GetStatementByPeriodAsync(int creditCardId, int userId, DateTime startDate, DateTime endDate)
         {
             var daysDifference = (endDate - startDate).TotalDays;
             if (daysDifference > 30)
@@ -354,13 +416,13 @@ namespace WebApplicationAPI.Services
                 throw new InvalidOperationException("A data final não pode ser anterior à data inicial");
             }
 
-            var card = await _repository.GetByIdAsync(creditCardId);
-            if (card == null)
+            var card = await _repository.GetByIdAsync(creditCardId, userId);
+            if (card == null || card.UserId != userId)
             {
-                throw new InvalidOperationException("Cartão não encontrado");
+                throw new InvalidOperationException("Cartão não encontrado ou não pertence ao usuário");
             }
 
-            var expenses = await _repository.GetExpensesByPeriodAsync(creditCardId, startDate, endDate);
+            var expenses = await _repository.GetExpensesByPeriodAsync(creditCardId, userId, startDate, endDate);
 
             return new CreditCardStatementResponse
             {
@@ -462,12 +524,12 @@ namespace WebApplicationAPI.Services
             return "Outros";
         }
 
-        public async Task<SimulatePurchaseResponse> SimulatePurchaseAsync(int creditCardId, SimulatePurchaseRequest request)
+        public async Task<SimulatePurchaseResponse> SimulatePurchaseAsync(int creditCardId, int userId, SimulatePurchaseRequest request)
         {
-            var card = await _repository.GetByIdAsync(creditCardId);
-            if (card == null)
+            var card = await _repository.GetByIdAsync(creditCardId, userId);
+            if (card == null || card.UserId != userId)
             {
-                throw new InvalidOperationException("Cartão não encontrado");
+                throw new InvalidOperationException("Cartão não encontrado ou não pertence ao usuário");
             }
 
             var installmentAmount = request.Amount / request.Installments;
@@ -491,9 +553,9 @@ namespace WebApplicationAPI.Services
 
                 var (periodStart, periodEnd) = CalculateBillingPeriod(targetYear, targetMonth, closingDay);
 
-                var monthlyControl = await GetMonthlyControlData(targetMonth, targetYear);
+                var monthlyControl = await GetMonthlyControlData(userId, targetMonth, targetYear);
 
-                var creditCardExpenses = await _repository.GetExpensesByPeriodAsync(creditCardId, periodStart, periodEnd);
+                var creditCardExpenses = await _repository.GetExpensesByPeriodAsync(creditCardId, userId, periodStart, periodEnd);
                 var creditCardTotal = creditCardExpenses.Sum(e => e.Amount);
 
                 var otherExpensesTotal = await _expenseRepository.GetTotalExpensesByMonthExcludingCategoryAsync(
@@ -609,12 +671,12 @@ namespace WebApplicationAPI.Services
             };
         }
 
-        public async Task<InstallmentPurchaseResponse> ConfirmPurchaseAsync(int creditCardId, ConfirmPurchaseRequest request)
+        public async Task<InstallmentPurchaseResponse> ConfirmPurchaseAsync(int creditCardId, int userId, ConfirmPurchaseRequest request)
         {
-            var card = await _repository.GetByIdAsync(creditCardId);
-            if (card == null)
+            var card = await _repository.GetByIdAsync(creditCardId, userId);
+            if (card == null || card.UserId != userId)
             {
-                throw new InvalidOperationException("Cartão não encontrado");
+                throw new InvalidOperationException("Cartão não encontrado ou não pertence ao usuário");
             }
 
             var currentDate = DateTime.Now;
@@ -653,16 +715,19 @@ namespace WebApplicationAPI.Services
             };
         }
 
-        public async Task<List<InstallmentPurchaseResponse>> GetInstallmentPurchasesAsync(int creditCardId)
+        public async Task<List<InstallmentPurchaseResponse>> GetInstallmentPurchasesAsync(int creditCardId, int userId)
         {
+            var card = await _repository.GetByIdAsync(creditCardId, userId);
+            if (card == null || card.UserId != userId)
+            {
+                throw new InvalidOperationException("Cartão não encontrado ou não pertence ao usuário");
+            }
             var purchases = await _repository.GetAllInstallmentPurchasesAsync(creditCardId);
             var currentDate = DateTime.Now;
-
             return purchases.Select(p =>
             {
                 var monthsPassed = ((currentDate.Year - p.FirstInstallmentYear) * 12) + (currentDate.Month - p.FirstInstallmentMonth);
                 var remaining = Math.Max(0, p.InstallmentCount - monthsPassed);
-
                 return new InstallmentPurchaseResponse
                 {
                     Id = p.Id,
@@ -681,9 +746,9 @@ namespace WebApplicationAPI.Services
             }).ToList();
         }
 
-        private async Task<MonthlyFinancialControlData> GetMonthlyControlData(int month, int year)
+        private async Task<MonthlyFinancialControlData> GetMonthlyControlData(int userId, int month, int year)
         {
-            var control = await _monthlyFinancialRepository.GetByYearAndMonthAsync(year, month);
+            var control = await _monthlyFinancialRepository.GetByYearAndMonthAsync(userId, year, month);
 
             if (control == null)
                 return null;

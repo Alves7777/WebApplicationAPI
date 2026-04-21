@@ -19,12 +19,22 @@ namespace WebApplicationAPI.Handlers.Summary
         }
         public async Task<SummaryResponse> Handle(GetFinancialSummaryQuery request, CancellationToken cancellationToken)
         {
-            var expenses = await _repository.GetExpensesAsync(request.Month, request.Year, null, null, null);
+            // ? Usa o userId da query (que vem do token JWT via controller)
+            var expenses = await _repository.GetExpensesByUserIdAsync(
+                request.UserId, 
+                request.Month, 
+                request.Year, 
+                null, 
+                null, 
+                null
+            );
+
             var totalExpenses = _calculator.GetTotalExpenses(expenses);
             var totalByCategory = _calculator.GetTotalByCategory(expenses);
             var totalByStatus = _calculator.GetTotalByStatus(expenses);
             var balance = _calculator.CalculateBalance(request.Salary, totalExpenses);
             var availableToSpend = _calculator.CalculateAvailableToSpend(balance, request.Reserve);
+
             return new SummaryResponse
             {
                 TotalExpenses = totalExpenses,

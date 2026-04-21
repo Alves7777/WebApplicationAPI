@@ -1,4 +1,6 @@
 @page "/categories"
+
+<AuthorizeRoute>
 @using FinancialControlUI.Models
 @using FinancialControlUI.Services
 @inject CategoryService CategoryService
@@ -137,3 +139,4 @@ else
         }
     }
 }
+</AuthorizeRoute>

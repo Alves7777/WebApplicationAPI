@@ -1,4 +1,6 @@
 @page "/creditcard/{CardId:int}/installments"
+
+<AuthorizeRoute>
 @using FinancialControlUI.Models
 @using FinancialControlUI.Services
 @inject CreditCardService CreditCardService
@@ -146,3 +148,4 @@ else
         }
     }
 }
+</AuthorizeRoute>

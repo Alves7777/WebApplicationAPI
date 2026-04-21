@@ -1,0 +1,778 @@
+{
+  "info": {
+    "_postman_id": "financial-control-api-v1",
+    "name": "Financial Control API - Autenticação JWT",
+    "description": "Collection completa da API de Controle Financeiro com autenticação JWT, multi-tenancy e soft delete.\n\n## Como usar:\n\n1. **Registrar** um usuário (Auth ? Register)\n2. **Login** para obter o token (Auth ? Login)\n3. O token será **salvo automaticamente** na variável `authToken`\n4. Use as outras rotas normalmente (já vão usar o token)\n\n## Variáveis da Collection:\n\n- `baseUrl`: http://localhost:5296\n- `authToken`: (preenchido automaticamente após login)\n\n## Endpoints:\n\n- **Auth**: Register, Login\n- **CreditCard**: CRUD completo + Expenses\n- **User**: CRUD de usuários\n- **Soft Delete**: Restaurar dados deletados",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "?? Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Salvar token automaticamente",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set(\"authToken\", jsonData.token);",
+                  "    pm.collectionVariables.set(\"userId\", jsonData.userId);",
+                  "    console.log(\"? Token salvo:\", jsonData.token.substring(0, 20) + \"...\");",
+                  "    console.log(\"? UserId salvo:\", jsonData.userId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Lucas Alves\",\n  \"email\": \"lucas@dev.com\",\n  \"password\": \"SenhaSegura123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Registra um novo usuário no sistema.\n\n**Corpo da requisição:**\n```json\n{\n  \"name\": \"Nome do Usuário\",\n  \"email\": \"email@example.com\",\n  \"password\": \"senha123\"\n}\n```\n\n**Resposta:**\n```json\n{\n  \"userId\": 1,\n  \"name\": \"Nome do Usuário\",\n  \"email\": \"email@example.com\",\n  \"token\": \"eyJhbGciOiJIUzI1NiIs...\",\n  \"role\": \"User\"\n}\n```\n\n?? O token é salvo automaticamente na variável `authToken`"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Salvar token automaticamente",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set(\"authToken\", jsonData.token);",
+                  "    pm.collectionVariables.set(\"userId\", jsonData.userId);",
+                  "    console.log(\"? Token salvo:\", jsonData.token.substring(0, 20) + \"...\");",
+                  "    console.log(\"? UserId salvo:\", jsonData.userId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"lucas@dev.com\",\n  \"password\": \"SenhaSegura123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Faz login com usuário existente.\n\n**Corpo da requisição:**\n```json\n{\n  \"email\": \"email@example.com\",\n  \"password\": \"senha123\"\n}\n```\n\n**Resposta:**\n```json\n{\n  \"userId\": 1,\n  \"name\": \"Nome do Usuário\",\n  \"email\": \"email@example.com\",\n  \"token\": \"eyJhbGciOiJIUzI1NiIs...\",\n  \"role\": \"User\"\n}\n```\n\n?? O token é salvo automaticamente na variável `authToken`"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints de autenticação (Register e Login).\n\n? O token JWT é salvo automaticamente após register/login."
+    },
+    {
+      "name": "?? CreditCard",
+      "item": [
+        {
+          "name": "Create CreditCard",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nubank\",\n  \"brand\": \"Mastercard\",\n  \"cardLimit\": 5000.00,\n  \"closingDay\": 10,\n  \"dueDay\": 18\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/creditcard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "creditcard"
+              ]
+            },
+            "description": "Cria um novo cartão de crédito para o usuário autenticado.\n\n?? Requer autenticação (token JWT)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All CreditCards",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/creditcard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "creditcard"
+              ]
+            },
+            "description": "Lista todos os cartões de crédito do usuário autenticado.\n\n?? Requer autenticação (token JWT)\n?? Retorna apenas os cartões do usuário logado (multi-tenancy)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get CreditCard by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/creditcard/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "creditcard",
+                "1"
+              ]
+            },
+            "description": "Busca um cartão de crédito específico por ID.\n\n?? Requer autenticação\n?? Só retorna se o cartão pertencer ao usuário logado"
+          },
+          "response": []
+        },
+        {
+          "name": "Update CreditCard",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nubank Black\",\n  \"brand\": \"Mastercard\",\n  \"cardLimit\": 10000.00,\n  \"closingDay\": 10,\n  \"dueDay\": 18\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/creditcard/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "creditcard",
+                "1"
+              ]
+            },
+            "description": "Atualiza um cartão de crédito.\n\n?? Requer autenticação\n?? Só atualiza se o cartão pertencer ao usuário logado"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete CreditCard",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/creditcard/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "creditcard",
+                "1"
+              ]
+            },
+            "description": "Deleta um cartão de crédito.\n\n?? Requer autenticação\n?? Só deleta se o cartão pertencer ao usuário logado\n?? Usa Soft Delete (pode ser restaurado)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create CreditCard Expense",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Compra no Mercado\",\n  \"amount\": 150.00,\n  \"category\": \"Alimentação\",\n  \"purchaseDate\": \"2026-04-14T00:00:00\",\n  \"installments\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/creditcard/1/expenses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "creditcard",
+                "1",
+                "expenses"
+              ]
+            },
+            "description": "Cria uma nova despesa para um cartão de crédito.\n\n?? Requer autenticação\n?? Só funciona se o cartão pertencer ao usuário logado"
+          },
+          "response": []
+        },
+        {
+          "name": "Get CreditCard Expenses",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/creditcard/1/expenses?month=4&year=2026",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "creditcard",
+                "1",
+                "expenses"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "4"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                },
+                {
+                  "key": "category",
+                  "value": "Alimentação",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Lista despesas de um cartão de crédito.\n\n**Query Parameters:**\n- `month` (opcional): Filtrar por mês\n- `year` (opcional): Filtrar por ano\n- `category` (opcional): Filtrar por categoria\n\n?? Requer autenticação"
+          },
+          "response": []
+        },
+        {
+          "name": "Get CreditCard Statement",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/creditcard/1/statement?month=4&year=2026",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "creditcard",
+                "1",
+                "statement"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "4"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                }
+              ]
+            },
+            "description": "Obtém o extrato completo de um cartão de crédito.\n\n?? Requer autenticação"
+          },
+          "response": []
+        },
+        {
+          "name": "Simulate Purchase",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1200.00,\n  \"installments\": 3,\n  \"purchaseDate\": \"2026-04-14T00:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/creditcard/1/simulate-purchase",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "creditcard",
+                "1",
+                "simulate-purchase"
+              ]
+            },
+            "description": "Simula uma compra parcelada no cartão.\n\n?? Requer autenticação"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints de gerenciamento de cartões de crédito.\n\n?? Todas as rotas requerem autenticação JWT\n?? Multi-tenancy: cada usuário vê apenas seus próprios cartões"
+    },
+    {
+      "name": "?? User",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "user"
+              ]
+            },
+            "description": "Lista todos os usuários.\n\n?? Requer autenticação"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "{{userId}}"
+              ]
+            },
+            "description": "Busca um usuário por ID.\n\n?? Requer autenticação"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Lucas Alves Silva\",\n  \"email\": \"lucas@dev.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "{{userId}}"
+              ]
+            },
+            "description": "Atualiza dados de um usuário.\n\n?? Requer autenticação"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "{{userId}}"
+              ]
+            },
+            "description": "Deleta um usuário.\n\n?? Requer autenticação\n?? Usa Soft Delete (pode ser restaurado)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints de gerenciamento de usuários.\n\n?? Todas as rotas requerem autenticação JWT"
+    },
+    {
+      "name": "?? Soft Delete",
+      "item": [
+        {
+          "name": "Restore CreditCard",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/creditcard/1/restore",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "creditcard",
+                "1",
+                "restore"
+              ]
+            },
+            "description": "Restaura um cartão de crédito que foi deletado.\n\n?? Requer autenticação\n?? Só restaura se o cartão pertencer ao usuário logado"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Deleted Items (Trash)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/creditcard?includeDeleted=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "creditcard"
+              ],
+              "query": [
+                {
+                  "key": "includeDeleted",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Lista todos os cartões, incluindo os deletados (lixeira).\n\n?? Requer autenticação\n?? Items com `deletedAt` não null estão na lixeira"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para trabalhar com Soft Delete (exclusão lógica).\n\n?? Dados deletados podem ser restaurados\n?? Todas as rotas requerem autenticação JWT"
+    },
+    {
+      "name": "?? Tests",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/weatherforecast",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "weatherforecast"
+              ]
+            },
+            "description": "Endpoint de teste para verificar se a API está rodando.\n\n? Não requer autenticação"
+          },
+          "response": []
+        },
+        {
+          "name": "Test Multi-Tenancy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Teste automático de multi-tenancy",
+                  "pm.test(\"Status code é 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Retorna apenas dados do usuário logado\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "    ",
+                  "    // Verifica se todos os cartões pertencem ao userId correto",
+                  "    var userId = pm.collectionVariables.get(\"userId\");",
+                  "    jsonData.data.forEach(function(card) {",
+                  "        pm.expect(card.userId).to.eql(userId);",
+                  "    });",
+                  "});",
+                  "",
+                  "console.log(\"? Multi-tenancy validado!\");"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/creditcard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "creditcard"
+              ]
+            },
+            "description": "Teste automatizado de multi-tenancy.\n\n? Valida que o usuário vê apenas seus próprios dados\n?? Requer autenticação"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints de teste e validação.\n\n?? Inclui testes automatizados de multi-tenancy"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Script executado antes de cada requisição",
+          "console.log(\"?? Token atual:\", pm.collectionVariables.get(\"authToken\") ? \"Definido\" : \"Não definido\");"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Script executado após cada requisição",
+          "if (pm.response.code !== 200 && pm.response.code !== 201) {",
+          "    console.log(\"?? Status:\", pm.response.code);",
+          "    console.log(\"?? Response:\", pm.response.text());",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5296",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

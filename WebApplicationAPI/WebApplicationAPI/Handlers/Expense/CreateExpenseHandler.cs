@@ -6,23 +6,29 @@ using WebApplicationAPI.Commands.Expense;
 using WebApplicationAPI.DTO;
 using WebApplicationAPI.Models;
 using WebApplicationAPI.Repositories.Interfaces;
+using WebApplicationAPI.Helpers;
 
 namespace WebApplicationAPI.Handlers.Expense
 {
     public class CreateExpenseHandler : IRequestHandler<CreateExpenseCommand, ExpenseResponse>
     {
         private readonly IExpenseRepository _repository;
+        private readonly UserContext _userContext;
 
-        public CreateExpenseHandler(IExpenseRepository repository)
+        public CreateExpenseHandler(IExpenseRepository repository, UserContext userContext)
         {
             _repository = repository;
+            _userContext = userContext;
         }
 
         public async Task<ExpenseResponse> Handle(CreateExpenseCommand request, CancellationToken cancellationToken)
         {
+            var userId = _userContext.GetCurrentUserId(); // ? Pega do token JWT
+
             var req = request.Request;
             var expense = new Models.Expense
             {
+                UserId = userId, // ? Vincula ao usuário logado
                 Month = req.Month,
                 Year = req.Year,
                 Description = req.Description,
